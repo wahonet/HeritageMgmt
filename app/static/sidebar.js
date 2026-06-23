@@ -24,6 +24,7 @@ function bindEvents(){
   $('#btnLogs').onclick = showLogs;
   $('#btnExport').onclick = exportLedger;
   $('#btnBackup').onclick = showBackup;
+  $('#btnRecycle').onclick = showRecycle;
   $('#btnImport').onclick = reImport;
   $('#btnAddProject').onclick = openWizard;
   $('#searchInput').oninput = e => filterSidebar(e.target.value);
@@ -191,10 +192,49 @@ async function doRestore(input){
   input.value='';
 }
 
+// ---------- 回收站 ----------
+async function showRecycle(){
+  state.currentProjectId=null;
+  document.querySelectorAll('.proj-item').forEach(e=>e.classList.remove('active'));
+  history.replaceState(null,'','#recycle');
+  const items=await fetch(API+'/recycle').then(r=>r.json());
+  if(!items||!items.length){
+    $('#content').innerHTML=`<div class="dashboard"><h2>回收站</h2><div class="hint" style="padding:40px">回收站为空</div></div>`;
+    return;
+  }
+  const rows=items.map(it=>`<tr>
+    <td>${esc(it.unit_name)}</td>
+    <td><b>${esc(it.name)}</b></td>
+    <td>${esc(it.ptype||'—')}</td>
+    <td>${esc(it.status||'—')}</td>
+    <td>
+      <button class="btn btn-sm" style="background:var(--green)" onclick="restoreProject(${it.id},'${esc(it.name).replace(/'/g,"\\'")}')">恢复</button>
+      <button class="btn btn-sm btn-del-project" onclick="purgeProject(${it.id},'${esc(it.name).replace(/'/g,"\\'")}')">彻底删除</button>
+    </td></tr>`).join('');
+  $('#content').innerHTML=`<div class="dashboard">
+    <h2>回收站（${items.length}个已删除工程）</h2>
+    <div class="alert-bar warn"><div class="t">恢复：将工程还原到列表（文件从回收站搬回）。彻底删除：永久删除，不可恢复。</div></div>
+    <div class="missing-table"><table>
+    <thead><tr><th>文物单位</th><th>工程名称</th><th>类型</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>${rows}</tbody></table></div></div>`;
+}
+async function restoreProject(pid, name){
+  if(!confirm(`确认恢复「${name}」？\n\n工程将重新出现在列表中。`)) return;
+  const r=await fetch(`${API}/project/${pid}/restore`,{method:'POST'}).then(r=>r.json());
+  if(r.ok){ alert('已恢复。'); showRecycle(); loadSidebar(''); }
+  else alert('恢复失败：'+(r.error||''));
+}
+async function purgeProject(pid, name){
+  if(!confirm(`确认彻底删除「${name}」？\n\n此操作不可恢复，工程数据和文件将被永久删除。`)) return;
+  const r=await fetch(`${API}/project/${pid}/purge`,{method:'DELETE'}).then(r=>r.json());
+  if(r.ok){ showRecycle(); }
+  else alert('删除失败：'+(r.error||''));
+}
+
 // ---------- 编辑台账 ----------
 
 window.selectProject=selectProject; window.openStage=openStage;
-window.openDoc=openDoc; window.openUpload=openUpload; window.deleteDoc=deleteDoc; window.openEdit=openEdit; window.ocrScan=ocrScan; window.switchView=switchView; window.switchTab=switchTab; window.renderCustomChart=renderCustomChart; window.toggleProjSelect=toggleProjSelect; window.selectAllProj=selectAllProj; window.showFileTree=showFileTree; window.openDocByName=openDocByName; window.deleteProject=deleteProject; window.deleteDocType=deleteDocType; window.wzUpload=wzUpload; window.deleteUnit=deleteUnit;
+window.openDoc=openDoc; window.openUpload=openUpload; window.deleteDoc=deleteDoc; window.openEdit=openEdit; window.ocrScan=ocrScan; window.switchView=switchView; window.switchTab=switchTab; window.renderCustomChart=renderCustomChart; window.toggleProjSelect=toggleProjSelect; window.selectAllProj=selectAllProj; window.showFileTree=showFileTree; window.openDocByName=openDocByName; window.deleteProject=deleteProject; window.deleteDocType=deleteDocType; window.wzUpload=wzUpload; window.deleteUnit=deleteUnit; window.restoreProject=restoreProject; window.purgeProject=purgeProject;
 
 // ---------- 添加项目向导 ----------
 let wizardState = { step:1, newPid:null };

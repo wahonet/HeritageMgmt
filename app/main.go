@@ -117,6 +117,9 @@ func main() {
 	mux.HandleFunc("GET /api/export/ledger", handleExportLedger)
 	mux.HandleFunc("GET /api/backup", handleBackup)
 	mux.HandleFunc("POST /api/restore", handleRestore)
+	mux.HandleFunc("GET /api/recycle", handleRecycle)
+	mux.HandleFunc("POST /api/project/{id}/restore", handleRestoreProject)
+	mux.HandleFunc("DELETE /api/project/{id}/purge", handlePurgeProject)
 	mux.HandleFunc("POST /api/ocr/scan", handleOCRScan)
 	mux.HandleFunc("GET /logo.png", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath.Join(appBase, "logo.png"))

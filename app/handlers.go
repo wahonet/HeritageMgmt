@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -389,6 +390,75 @@ func handleDeleteProject(w http.ResponseWriter, r *http.Request) {
 	}
 	MoveProjectToRecycle(pid)
 	InsertLog("删除工程", fmt.Sprintf("工程#%d %s", pid, proj.Name), "已放入回收站")
+	writeJSON(w, map[string]interface{}{"ok": true})
+}
+
+// ---- 回收站 ----
+func handleRecycle(w http.ResponseWriter, r *http.Request) {
+	// 查已软删除的工程
+	rows, _ := db.Query(`SELECT p.id,p.name,p.folder,p.ptype,p.status,u.name FROM projects p LEFT JOIN units u ON u.id=p.unit_id WHERE COALESCE(p.deleted,0)=1 ORDER BY p.id DESC`)
+	type rItem struct {
+		ID       int64  `json:"id"`
+		Name     string `json:"name"`
+		Folder   string `json:"folder"`
+		Ptype    string `json:"ptype"`
+		Status   string `json:"status"`
+		UnitName string `json:"unit_name"`
+	}
+	var items []rItem
+	for rows.Next() {
+		var it rItem
+		var folder, ptype, status, uname sql.NullString
+		rows.Scan(&it.ID, &it.Name, &folder, &ptype, &status, &uname)
+		it.Folder = folder.String
+		it.Ptype = ptype.String
+		it.Status = status.String
+		it.UnitName = uname.String
+		if it.UnitName == "" {
+			it.UnitName = "(单位已删除)"
+		}
+		items = append(items, it)
+	}
+	rows.Close()
+	if items == nil {
+		items = []rItem{}
+	}
+	writeJSON(w, items)
+}
+
+// ---- 恢复工程 ----
+func handleRestoreProject(w http.ResponseWriter, r *http.Request) {
+	pid, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	proj, err := GetProject(pid)
+	if err != nil || proj == nil {
+		writeJSON(w, map[string]interface{}{"ok": false, "error": "工程不存在"})
+		return
+	}
+	// 恢复DB记录
+	db.Exec("UPDATE projects SET deleted=0 WHERE id=?", pid)
+	// 恢复文件夹
+	recyclePath := filepath.Join(dataDir, "recycle", proj.Folder)
+	if _, err := os.Stat(recyclePath); err == nil {
+		os.Rename(recyclePath, filepath.Join(projectsDir, proj.Folder))
+	}
+	InsertLog("恢复工程", fmt.Sprintf("工程#%d %s", pid, proj.Name), "从回收站恢复")
+	writeJSON(w, map[string]interface{}{"ok": true})
+}
+
+// ---- 彻底删除工程 ----
+func handlePurgeProject(w http.ResponseWriter, r *http.Request) {
+	pid, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	proj, err := GetProject(pid)
+	if err != nil || proj == nil {
+		writeJSON(w, map[string]interface{}{"ok": false, "error": "工程不存在"})
+		return
+	}
+	// 删DB记录
+	db.Exec("DELETE FROM documents WHERE project_id=?", pid)
+	db.Exec("DELETE FROM projects WHERE id=?", pid)
+	// 删磁盘文件
+	os.RemoveAll(filepath.Join(dataDir, "recycle", proj.Folder))
+	InsertLog("彻底删除", fmt.Sprintf("工程#%d %s", pid, proj.Name), "不可恢复")
 	writeJSON(w, map[string]interface{}{"ok": true})
 }
 
