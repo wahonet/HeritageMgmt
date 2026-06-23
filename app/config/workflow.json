@@ -1,0 +1,38 @@
+{
+  "_comment": "工作流阶段定义，驱动前端流程图。每个 stage 绑定若干文档类型(doc codes)。",
+  "stages": [
+    {"code": "approve",      "name": "方案审批",  "docs": ["approval"]},
+    {"code": "funding",      "name": "资金下达",  "docs": ["funding"]},
+    {"code": "design",       "name": "勘察设计",  "docs": ["design_contract", "design_fee"]},
+    {"code": "bidding",      "name": "招标与合同","docs": ["construction_contract"]},
+    {"code": "supervision",  "name": "监理委托",  "docs": ["supervision_contract", "supervision_fee"]},
+    {"code": "construction", "name": "施工开工",  "docs": ["start_report"]},
+    {"code": "review",       "name": "过程评审",  "docs": ["expert_fee"]},
+    {"code": "acceptance",   "name": "竣工验收",  "docs": ["acceptance", "engineering_fee"]},
+    {"code": "archive",      "name": "归档",      "docs": ["catalog"]}
+  ],
+  "units": {
+    "_comment": "文物单位识别关键词（按工程名匹配）",
+    "rules": [
+      {"unit": "武氏墓群石刻", "level": "国保", "category": "石刻", "keywords": ["武氏墓群石刻", "武氏祠", "武氏祠博物馆"]},
+      {"unit": "曾庙", "level": "国保", "category": "古建筑", "keywords": ["曾庙"]},
+      {"unit": "青山寺", "level": "国保", "category": "古建筑", "keywords": ["青山寺"]}
+    ]
+  },
+  "project_types": {
+    "_comment": "工程类型识别关键词",
+    "rules": [
+      {"type": "安防工程", "keywords": ["安防"]},
+      {"type": "消防工程", "keywords": ["消防"]},
+      {"type": "抢险加固工程", "keywords": ["抢险"]},
+      {"type": "本体保护工程", "keywords": ["本体保护"]},
+      {"type": "数字化保护", "keywords": ["数字化"]},
+      {"type": "预防性保护", "keywords": ["预防性保护"]},
+      {"type": "环境整治工程", "keywords": ["环境整治"]},
+      {"type": "前期勘察研究", "keywords": ["勘察研究", "前期勘察"]},
+      {"type": "保护性设施建设工程", "keywords": ["保护性设施"]},
+      {"type": "院落整修工程", "keywords": ["院落地面", "排水", "院落"]},
+      {"type": "修缮工程", "keywords": ["修缮"]}
+    ]
+  }
+}

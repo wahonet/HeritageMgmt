@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>嘉祥县文物保护工程管理系统</title>
+<link rel="stylesheet" href="style.css?v11">
+</head>
+<body>
+<div id="app">
+
+  <!-- 顶栏 -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-wrap"><img src="logo.png?v3" class="logo-img" alt="logo"></div>
+      <h1>嘉祥县文物保护工程管理系统</h1>
+    </div>
+    <div class="top-actions">
+      <button id="btnDashboard" class="btn">整体情况</button>
+      <button id="btnStats" class="btn">统计图表</button>
+      <button id="btnLogs" class="btn">操作日志</button>
+      <button id="btnExport" class="btn">导出台账</button>
+      <button id="btnImport" class="btn">重新导入</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- 左侧：单位/工程列表 -->
+    <aside class="sidebar">
+      <div class="search-box">
+        <input id="searchInput" type="text" placeholder="搜索工程名 / 批复文号…">
+        <button id="btnAddProject" class="btn btn-sm" style="margin-top:6px;width:100%">添加项目</button>
+      </div>
+      <div id="unitList" class="unit-list"></div>
+    </aside>
+
+    <!-- 右侧：内容区 -->
+    <section class="content" id="content">
+      <!-- 动态渲染：看板 或 工程详情 -->
+    </section>
+  </div>
+</div>
+
+<!-- 上传弹窗 -->
+<div id="uploadModal" class="modal hidden">
+  <div class="modal-card">
+    <h3 id="uploadTitle">上传文件</h3>
+    <div class="modal-body">
+      <div class="field">
+        <label>文档类型</label>
+        <div id="uploadTypeLabel" class="type-label"></div>
+      </div>
+      <div class="field">
+        <label>选择文件</label>
+        <input id="uploadFile" type="file" multiple>
+        <p class="hint">支持 PDF / 图片 / Word / Excel，可多选</p>
+      </div>
+      <div id="uploadResult" class="upload-result"></div>
+    </div>
+    <div class="modal-foot">
+      <button id="uploadCancel" class="btn btn-ghost">取消</button>
+      <button id="uploadSubmit" class="btn btn-primary">上传</button>
+    </div>
+  </div>
+</div>
+
+<!-- 文件预览(iframe) -->
+<div id="previewModal" class="modal hidden">
+  <div class="modal-card modal-wide">
+    <div class="modal-foot">
+      <span id="previewTitle" class="preview-title"></span>
+      <button id="previewClose" class="btn btn-ghost">关闭</button>
+    </div>
+    <iframe id="previewFrame" class="preview-frame"></iframe>
+  </div>
+</div>
+
+<!-- 编辑台账弹窗 -->
+<div id="editModal" class="modal hidden">
+  <div class="modal-card modal-wide">
+    <div class="modal-foot" style="background:linear-gradient(135deg,var(--primary-dark),var(--primary));color:#fff">
+      <h3 style="font-size:15px">编辑工程台账</h3>
+      <button id="editCancel" class="btn btn-ghost">取消</button>
+    </div>
+    <div class="modal-body" id="editBody"></div>
+    <div class="modal-foot">
+      <span style="font-size:11px;color:var(--muted)" id="editHint">修改后点击保存，将记录到操作日志</span>
+      <button id="editSave" class="btn btn-primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 文件结构树弹窗 -->
+<div id="treeModal" class="modal hidden">
+  <div class="modal-card modal-wide">
+    <div class="modal-foot" style="background:linear-gradient(135deg,var(--primary-dark),var(--primary));color:#fff">
+      <h3 style="font-size:15px" id="treeTitle">文件结构</h3>
+      <button id="treeClose" class="btn btn-ghost">关闭</button>
+    </div>
+    <div class="modal-body" id="treeBody"></div>
+  </div>
+</div>
+
+<!-- 添加项目向导弹窗 -->
+<div id="wizardModal" class="modal hidden">
+  <div class="modal-card modal-wide">
+    <div class="modal-foot" style="background:linear-gradient(135deg,var(--primary-dark),var(--primary));color:#fff">
+      <h3 style="font-size:15px">添加项目</h3>
+      <button id="wizardClose" class="btn btn-ghost">关闭</button>
+    </div>
+    <div class="modal-body" id="wizardBody"></div>
+    <div class="modal-foot">
+      <span style="font-size:11px;color:var(--muted)" id="wizardHint"></span>
+      <button id="wizardNext" class="btn btn-primary">下一步</button>
+    </div>
+  </div>
+</div>
+
+<script src="utils.js"></script>
+<script src="project.js"></script>
+<script src="charts.js"></script>
+<script src="sidebar.js"></script>
+</body>
+</html>

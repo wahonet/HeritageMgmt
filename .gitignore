@@ -1,0 +1,26 @@
+# 二进制/编译产物
+app/heritage-mgmt.exe
+app/heritage-mgmt-linux-*
+app/heritage-mgmt
+
+# 数据(含敏感文件:合同PDF/发票/密钥)
+app/data/
+app/llm.json
+app/logo.orig.png
+
+# 原始基础数据(含真实政府文档,体积大)
+Basicdata/
+
+# 备份
+backup-pre-refactor/
+
+# 临时/工具
+app/_shot/
+app/static/app.js.bak
+__pycache__/
+*.pyc
+node_modules/
+
+# 系统
+.DS_Store
+Thumbs.db
