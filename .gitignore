@@ -1,15 +1,28 @@
+# === 只保留程序框架(app/)，以下全部排除 ===
+
+# 法律法规参考资料(非程序代码)
+1-National/
+2-Shandong/
+3-Process/
+README.md
+
+# 原始基础数据(含真实政府文档)
+Basicdata/
+
 # 二进制/编译产物
 app/heritage-mgmt.exe
 app/heritage-mgmt-linux-*
 app/heritage-mgmt
 
-# 数据(含敏感文件:合同PDF/发票/密钥)
+# 数据(含敏感文件:合同PDF/发票/数据库)
 app/data/
-app/llm.json
-app/logo.orig.png
 
-# 原始基础数据(含真实政府文档,体积大)
-Basicdata/
+# API密钥(切勿上传)
+app/llm.json
+app/config/llm.json
+
+# logo原图备份
+app/logo.orig.png
 
 # 备份
 backup-pre-refactor/
