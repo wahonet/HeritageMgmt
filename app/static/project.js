@@ -29,6 +29,7 @@ function renderProject(data){
         <button class="btn btn-sm" onclick="showFileTree(${p.id})">文件结构</button>
         <button class="btn btn-sm" onclick="openEdit(${p.id})">编辑台账</button>
         <button class="btn btn-sm" onclick="ocrScan(${p.id},this)">OCR识别合同</button>
+        <button class="btn btn-sm" onclick="exportReport(${p.id})">导出报告</button>
         <button class="btn btn-sm btn-del-project" onclick="deleteProject(${p.id},'${esc(p.name).replace(/'/g,"\\'")}')">删除项目</button>
       </div>
     </div>`;
@@ -405,4 +406,10 @@ async function deleteDocType(pid, docType, label){
       alert(`已删除${j.deleted}个文件。`);
     } else { alert('删除失败：'+(j.error||'')); }
   }catch(e){ alert('请求失败：'+e); }
+}
+
+// ---------- 导出报告 ----------
+function exportReport(pid){
+  if(!confirm('将生成工程报告PDF（含大模型智能分析），需要联网调用API，约30-60秒。继续？')) return;
+  window.location.href=API+'/project/'+pid+'/report';
 }
