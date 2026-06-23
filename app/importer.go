@@ -337,7 +337,7 @@ func ImportAll(basicdataDir string, verbose bool) (*ImportStats, error) {
 	sortStrings(projDirs)
 
 	unitCache := map[string]int64{}
-	unitSort := map[string]int{"武氏墓群石刻": 1, "曾庙": 2, "青山寺": 3}
+	unitSort := map[string]int{} // 按导入顺序排序
 
 	tx, err := db.Begin()
 	if err != nil {

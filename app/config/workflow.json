@@ -1,5 +1,5 @@
 {
-  "_comment": "工作流阶段定义，驱动前端流程图。每个 stage 绑定若干文档类型(doc codes)。",
+  "_comment": "工作流阶段定义，驱动前端流程图。units.rules 留空，使用时通过系统界面添加文物单位。",
   "stages": [
     {"code": "approve",      "name": "方案审批",  "docs": ["approval"]},
     {"code": "funding",      "name": "资金下达",  "docs": ["funding"]},
@@ -12,12 +12,8 @@
     {"code": "archive",      "name": "归档",      "docs": ["catalog"]}
   ],
   "units": {
-    "_comment": "文物单位识别关键词（按工程名匹配）",
-    "rules": [
-      {"unit": "武氏墓群石刻", "level": "国保", "category": "石刻", "keywords": ["武氏墓群石刻", "武氏祠", "武氏祠博物馆"]},
-      {"unit": "曾庙", "level": "国保", "category": "古建筑", "keywords": ["曾庙"]},
-      {"unit": "青山寺", "level": "国保", "category": "古建筑", "keywords": ["青山寺"]}
-    ]
+    "_comment": "文物单位识别关键词——使用时通过系统界面添加，或在此配置",
+    "rules": []
   },
   "project_types": {
     "_comment": "工程类型识别关键词",
