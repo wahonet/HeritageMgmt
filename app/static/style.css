@@ -357,4 +357,4 @@ body{
 .stats-tab:hover{color:var(--primary-dark);}
 .stats-tab.active{color:var(--primary-dark); border-bottom-color:var(--primary); font-weight:700;}
 .cc-result-full{margin-top:14px; min-height:200px;}
-.cc-result-full .chart-card{max-width:none; margin:0;}
+.cc-result-full .chart-card{margin:0 auto;}

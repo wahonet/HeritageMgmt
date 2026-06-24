@@ -8,7 +8,8 @@ function barChart(title, items, color, opts){
   opts=opts||{};
   const short=s=>{s=s||'';return s.length>15?s.slice(0,15)+'…':s;};
   const rot=items.some(it=>(it.label||'').length>5)||items.length>7;
-  const W=opts.grow?Math.min(1100,Math.max(560,items.length*58)):440,H=200,padL=46,padB=rot?60:38,padT=16,padR=10;
+  const growMin=opts.growMin||560;
+  const W=opts.grow?Math.min(1100,Math.max(growMin,items.length*58)):440,H=200,padL=46,padB=rot?60:38,padT=16,padR=10;
   const vals=items.map(i=>i.v||0);
   const total=vals.reduce((s,v)=>s+v,0)||1;
   const max=opts.asPct?100:Math.max(1,...vals);
@@ -34,7 +35,8 @@ function groupBar(title, items, legendA, legendB, opts){
   legendA=legendA||'中央指标'; legendB=legendB||'已支付';
   const short=s=>{s=s||'';return s.length>15?s.slice(0,15)+'…':s;};
   const rot=items.some(it=>(it.label||'').length>5)||items.length>6;
-  const W=opts.grow?Math.min(1100,Math.max(560,items.length*72)):440,H=200,padL=46,padB=rot?60:38,padT=22,padR=10;
+  const growMin=opts.growMin||560;
+  const W=opts.grow?Math.min(1100,Math.max(growMin,items.length*72)):440,H=200,padL=46,padB=rot?60:38,padT=22,padR=10;
   const max=Math.max(1,...items.flatMap(i=>[i.a||0,i.b||0]));
   const slot=(W-padL-padR)/Math.max(1,items.length), bw=Math.min(slot*0.36,22);
   const bars=items.map((it,i)=>{
@@ -138,15 +140,16 @@ function renderCustomChart(){
     rows=d[grp]||[];
   }
   let html='';
+  const growOpts={grow:true, growMin:900};
   if(type==='cmp'){
     const pair=CMP[mkey]||CMP.funding;
     const items=rows.map(r=>({label:r.k, a:r[pair[0]]||0, b:r[pair[1]]||0}));
-    html=groupBar(`${pair[2]} vs ${pair[3]} · 按${grpName}（万元）`, items, pair[2], pair[3], {grow:true});
+    html=groupBar(`${pair[2]} vs ${pair[3]} · 按${grpName}（万元）`, items, pair[2], pair[3], growOpts);
   } else {
     const items=rows.map(r=>({label:r.k, k:r.k, v:r[mkey]||0}));
     const filt = grp==='proj' ? items : items.filter(r=>r.v>0);
     const title=`${METRICS[mkey]} · 按${grpName}（万元）`;
-    html = type==='pie' ? pieChart(title, filt, CHART_COLORS, '万') : barChart(title, filt, CHART_COLORS[0], {asPct:disp==='pct', unit:'万', grow:true});
+    html = type==='pie' ? pieChart(title, filt, CHART_COLORS, '万') : barChart(title, filt, CHART_COLORS[0], {asPct:disp==='pct', unit:'万', ...growOpts});
   }
   $('#ccResult').innerHTML=html||'<div class="hint">请选择工程或该指标暂无数据</div>';
 }
