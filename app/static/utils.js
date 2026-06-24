@@ -1,4 +1,4 @@
-// ===== 嘉祥县文物保护工程管理系统 · 前端逻辑 =====
+// ===== 文物保护工程管理系统 · 前端逻辑 =====
 const API = '/api';
 const state = { config:null, units:[], currentProjectId:null, uploadCtx:null, activeStage:null, viewMode:'stack', activeTab:'basic', lastData:null };
 const $ = s => document.querySelector(s);

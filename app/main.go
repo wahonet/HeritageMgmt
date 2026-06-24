@@ -127,7 +127,7 @@ func main() {
 	})
 	mux.Handle("/", noCacheFS(http.FileServer(staticFileSystem())))
 
-	fmt.Println("✓ 嘉祥县文物保护工程管理系统已启动: http://127.0.0.1:5000  (Ctrl+C 停止)")
+	fmt.Println("✓ 文物保护工程管理系统已启动: http://127.0.0.1:5000  (Ctrl+C 停止)")
 	srv := &http.Server{Addr: "127.0.0.1:5000", Handler: mux}
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
