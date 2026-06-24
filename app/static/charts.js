@@ -86,16 +86,12 @@ async function showStats(){
   const unitItems=d.by_unit.map(u=>({label:u.k,a:u.funding,b:u.paid}));
   const mopts=Object.entries(METRICS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
   const projChecks=state.projectsList.map((p,i)=>`<label class="ps-item"><input type="checkbox" value="${p.id}" ${i<5?'checked':''} onchange="renderCustomChart()"><span title="${esc(p.k)}">${esc(p.k)}</span></label>`).join('');
-  $('#content').innerHTML=`<div class="stats-view">
-    <h2>统计分析</h2>
-    <div class="stats-summary">中央指标合计 <b>${fmt(t.funding)}</b>万元 ｜ 已支付 <b>${fmt(t.paid)}</b>万元 ｜ 待支付 <b>${fmt(t.pending)}</b>万元 ｜ 整体支付率 <b>${t.funding>0?(t.paid/t.funding*100).toFixed(1):'—'}%</b></div>
+  const fixedHTML=`<div class="stats-summary">中央指标合计 <b>${fmt(t.funding)}</b>万元 ｜ 已支付 <b>${fmt(t.paid)}</b>万元 ｜ 待支付 <b>${fmt(t.pending)}</b>万元 ｜ 整体支付率 <b>${t.funding>0?(t.paid/t.funding*100).toFixed(1):'—'}%</b></div>
     <div class="charts-grid">
       ${groupBar('各年度 中央指标 vs 已支付（万元）',yearItems)}
       ${groupBar('各文物单位 中央指标 vs 已支付（万元）',unitItems)}
-    </div>
-    <div class="custom-chart">
-      <div class="cc-title">自定义图表</div>
-      <div class="cc-controls">
+    </div>`;
+  const customHTML=`<div class="cc-controls">
         <span><label>类型</label><select id="ccType"><option value="bar">柱状</option><option value="cmp">对比柱状</option><option value="pie">饼状</option></select></span>
         <span><label>分组(X轴)</label><select id="ccGroup" onchange="toggleProjSelect()"><option value="by_unit">文保单位</option><option value="by_type">工程类型</option><option value="by_year">年份</option><option value="proj">工程名称</option></select></span>
         <span><label>指标(Y轴)</label><select id="ccMetric">${mopts}</select></span>
@@ -106,10 +102,23 @@ async function showStats(){
         <div class="ps-head">选择工程（可多选，默认前5个）<span class="ps-act"><a onclick="selectAllProj(true)">全选</a> · <a onclick="selectAllProj(false)">清空</a></span></div>
         <div class="ps-list">${projChecks}</div>
       </div>
-      <div id="ccResult" class="cc-result"></div>
+      <div id="ccResult" class="cc-result-full"></div>`;
+
+  $('#content').innerHTML=`<div class="stats-view">
+    <h2>统计分析</h2>
+    <div class="stats-tabs">
+      <button class="stats-tab active" data-stab="fixed" onclick="switchStatsTab('fixed')">固定图表</button>
+      <button class="stats-tab" data-stab="custom" onclick="switchStatsTab('custom')">自定义图表</button>
     </div>
+    <div id="statsFixed" class="stats-pane">${fixedHTML}</div>
+    <div id="statsCustom" class="stats-pane hidden">${customHTML}</div>
   </div>`;
   renderCustomChart();
+}
+function switchStatsTab(tab){
+  document.querySelectorAll('.stats-tab').forEach(b=>b.classList.toggle('active', b.dataset.stab===tab));
+  $('#statsFixed').classList.toggle('hidden', tab!=='fixed');
+  $('#statsCustom').classList.toggle('hidden', tab!=='custom');
 }
 function toggleProjSelect(){
   const isProj=$('#ccGroup').value==='proj';

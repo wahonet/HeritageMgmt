@@ -234,7 +234,7 @@ async function purgeProject(pid, name){
 // ---------- 编辑台账 ----------
 
 window.selectProject=selectProject; window.openStage=openStage;
-window.openDoc=openDoc; window.openUpload=openUpload; window.deleteDoc=deleteDoc; window.openEdit=openEdit; window.ocrScan=ocrScan; window.switchView=switchView; window.switchTab=switchTab; window.renderCustomChart=renderCustomChart; window.toggleProjSelect=toggleProjSelect; window.selectAllProj=selectAllProj; window.showFileTree=showFileTree; window.openDocByName=openDocByName; window.deleteProject=deleteProject; window.deleteDocType=deleteDocType; window.wzUpload=wzUpload; window.deleteUnit=deleteUnit; window.restoreProject=restoreProject; window.purgeProject=purgeProject;
+window.openDoc=openDoc; window.openUpload=openUpload; window.deleteDoc=deleteDoc; window.openEdit=openEdit; window.ocrScan=ocrScan; window.switchView=switchView; window.switchTab=switchTab; window.renderCustomChart=renderCustomChart; window.toggleProjSelect=toggleProjSelect; window.selectAllProj=selectAllProj; window.showFileTree=showFileTree; window.openDocByName=openDocByName; window.deleteProject=deleteProject; window.deleteDocType=deleteDocType; window.wzUpload=wzUpload; window.deleteUnit=deleteUnit; window.restoreProject=restoreProject; window.purgeProject=purgeProject; window.switchStatsTab=switchStatsTab;
 
 // ---------- 添加项目向导 ----------
 let wizardState = { step:1, newPid:null };
