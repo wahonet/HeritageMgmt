@@ -105,7 +105,7 @@ func (svc *ImportService) ImportAll(verbose bool) (*ImportStats, error) {
 			excelimport.ParseFloat(excelimport.FinGet(fin, "sup_contract")), excelimport.ParseFloat(excelimport.FinGet(fin, "sup_paid")),
 			excelimport.ParseFloat(excelimport.FinGet(fin, "des_contract")), excelimport.ParseFloat(excelimport.FinGet(fin, "des_paid")),
 			excelimport.ParseFloat(excelimport.FinGet(fin, "expert_fee")), excelimport.ParseFloat(excelimport.FinGet(fin, "total_paid")),
-			excelimport.DeriveStatus(fin), excelimport.FinGet(fin, "progress_note"),
+			excelimport.DeriveStatus(fin, svc.cfg.Rules.StatusKeywords), excelimport.FinGet(fin, "progress_note"),
 			folder, time.Now().Format("2006-01-02 15:04:05"))
 		if err != nil {
 			return stats, err

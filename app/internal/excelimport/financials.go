@@ -139,17 +139,20 @@ func TrimDate(s string) string {
 	return s
 }
 
-// DeriveStatus 依据财务记录的进展说明/开工日期推导工程状态
-func DeriveStatus(fin map[string]string) string {
+// DeriveStatus 依据财务记录的进展说明/开工日期推导工程状态。
+// statusKeywords 为各状态的关键词（来自 config/rules.json，由调用方注入，保持本包无配置依赖）。
+// 按固定优先级匹配：已竣工 > 在建；均不匹配且有开工日期视为在建，否则前期。
+func DeriveStatus(fin map[string]string, statusKeywords map[string][]string) string {
 	if fin == nil {
 		return ""
 	}
 	txt := FinGet(fin, "progress_note")
-	if strings.Contains(txt, "验收") || strings.Contains(txt, "竣工") || strings.Contains(txt, "完工") {
-		return "已竣工"
-	}
-	if strings.Contains(txt, "在建") || strings.Contains(txt, "施工") {
-		return "在建"
+	for _, status := range []string{"已竣工", "在建"} {
+		for _, kw := range statusKeywords[status] {
+			if strings.Contains(txt, kw) {
+				return status
+			}
+		}
 	}
 	if FinGet(fin, "sign_date") != "" {
 		return "在建"

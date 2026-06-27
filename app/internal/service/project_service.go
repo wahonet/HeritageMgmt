@@ -127,12 +127,7 @@ func (svc *ProjectService) Analyze(pid int64) *domain.ProjectDetail {
 	}
 }
 
-// qualRules: 各保护级别对 设计/施工/监理 资质的最低要求（""=不限）。
-// TODO(Step 10): 迁移至 config/rules.json，实现配置驱动。
-var qualRules = map[string]struct{ design, construction, supervision string }{
-	"国保": {design: "甲级", construction: "一级", supervision: "甲级"},
-}
-
+// qualWarnings 依据 cfg.Rules.QualThresholds（来自 config/rules.json）校验参建单位资质。
 func (svc *ProjectService) qualWarnings(p *domain.Project) []string {
 	var warns []string
 	level := svc.units.UnitLevel(p.UnitID)
@@ -140,11 +135,11 @@ func (svc *ProjectService) qualWarnings(p *domain.Project) []string {
 		return warns
 	}
 	// 未配置的级别返回零值结构体（全 ""），即仅校验"未填写"，不校验资质等级阈值
-	req := qualRules[level]
+	req := svc.cfg.Rules.QualThresholds[level]
 	checks := []struct{ label, qual, unit, req string }{
-		{"设计单位资质", p.DesignQual, p.DesignUnit, req.design},
-		{"施工单位资质", p.ConstructionQual, p.ConstructionUnit, req.construction},
-		{"监理单位资质", p.SupervisionQual, p.SupervisionUnit, req.supervision},
+		{"设计单位资质", p.DesignQual, p.DesignUnit, req.Design},
+		{"施工单位资质", p.ConstructionQual, p.ConstructionUnit, req.Construction},
+		{"监理单位资质", p.SupervisionQual, p.SupervisionUnit, req.Supervision},
 	}
 	for _, c := range checks {
 		switch {

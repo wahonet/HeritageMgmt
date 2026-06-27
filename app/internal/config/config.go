@@ -25,6 +25,7 @@ type Config struct {
 	DocCfg       domain.DocTypeCfg
 	WfCfg        domain.Workflow
 	LLM          llm.Config
+	Rules        Rules
 }
 
 // ResolvePaths 解析数据/配置目录（优先可执行文件同级，go run 时回退工作目录），
@@ -144,5 +145,6 @@ func NewConfig() (*Config, error) {
 		DocCfg:       docCfg,
 		WfCfg:        wfCfg,
 		LLM:          LoadLLM(appBase),
+		Rules:        LoadRules(appBase),
 	}, nil
 }
