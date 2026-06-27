@@ -1,4 +1,4 @@
-package main
+package store
 
 // 数据层：表结构定义、旧库字段迁移、整库重置。
 
@@ -78,8 +78,8 @@ func (s *Store) tableColumns(table string) map[string]bool {
 	return m
 }
 
-// resetTables 清空工程/单位/文档并重置自增序列
-func resetTables(tx *sql.Tx) error {
+// ResetTables 清空工程/单位/文档并重置自增序列（供导入主流程在事务内调用）。
+func ResetTables(tx *sql.Tx) error {
 	for _, t := range []string{"documents", "projects", "units"} {
 		if _, err := tx.Exec("DELETE FROM " + t); err != nil {
 			return err

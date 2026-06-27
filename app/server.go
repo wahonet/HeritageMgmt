@@ -1,6 +1,6 @@
 package main
 
-// HTTP 传输层：Server 持有全部依赖（仓储接口 + service + *Config + *Store），
+// HTTP 传输层：Server 持有全部依赖（仓储接口 + service + *config.Config + *store.Store），
 // 所有 handler 为其方法，仅做请求解析/校验/序列化，业务逻辑下沉到 service。
 // 路由注册集中在此（由 main.go 迁入）。
 
@@ -9,13 +9,15 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"heritage-mgmt/internal/config"
 	"heritage-mgmt/internal/llm"
+	"heritage-mgmt/internal/store"
 )
 
 // Server 是 HTTP 层的组合根：持有配置、Store、各仓储接口、各 service 与 LLM 客户端。
 type Server struct {
-	cfg      *Config
-	store    *Store
+	cfg      *config.Config
+	store    *store.Store
 	projects ProjectRepository
 	units    UnitRepository
 	docs     DocumentRepository

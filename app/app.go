@@ -3,17 +3,21 @@ package main
 // DI 根：NewApp 按 config → store → repos → services → server 顺序组装全部依赖，
 // 消灭包级全局单例。main 仅负责调用 NewApp 并驱动 CLI/HTTP。
 
-import "heritage-mgmt/internal/llm"
+import (
+	"heritage-mgmt/internal/config"
+	"heritage-mgmt/internal/llm"
+	"heritage-mgmt/internal/store"
+)
 
 // App 持有运行期全部组装产物。
 type App struct {
-	cfg    *Config
-	store  *Store
+	cfg    *config.Config
+	store  *store.Store
 	server *Server
 }
 
-// NewApp 组装应用：构造各 service（注入仓储接口 *Store + *Config + LLM 客户端）与 Server。
-func NewApp(cfg *Config, store *Store) *App {
+// NewApp 组装应用：构造各 service（注入仓储接口 *store.Store + *config.Config + LLM 客户端）与 Server。
+func NewApp(cfg *config.Config, store *store.Store) *App {
 	client := llm.New(cfg.LLM)
 	proj := &ProjectService{projects: store, units: store, docs: store, cfg: cfg}
 	stats := &StatsService{projects: store, units: store}

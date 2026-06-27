@@ -2,7 +2,7 @@ package main
 
 // 导入流程编排：扫描 Basicdata/ → 识别(classify) + Excel财务(excelimport) → 复制归档 → 入库。
 // 识别与财务解析的纯逻辑已分别迁至 internal/classify 与 internal/excelimport。
-// ImportService 依赖注入 *Store（事务）与 *Config（路径/配置），不再访问包级全局。
+// ImportService 依赖注入 *store.Store（事务）与 *config.Config（路径/配置），不再访问包级全局。
 
 import (
 	"fmt"
@@ -14,7 +14,9 @@ import (
 	"time"
 
 	"heritage-mgmt/internal/classify"
+	"heritage-mgmt/internal/config"
 	"heritage-mgmt/internal/excelimport"
+	"heritage-mgmt/internal/store"
 )
 
 // ImportStats 导入统计。
@@ -24,8 +26,8 @@ type ImportStats struct {
 
 // ImportService 编排 Basicdata 批量导入（事务 + 扫描目录 + classify + excelimport + 落盘 + 入库）。
 type ImportService struct {
-	store *Store
-	cfg   *Config
+	store *store.Store
+	cfg   *config.Config
 }
 
 // ImportAll 扫描 cfg.AbsBasicdata 导入全部数据；verbose 控制是否打印进度。
@@ -57,7 +59,7 @@ func (svc *ImportService) ImportAll(verbose bool) (*ImportStats, error) {
 		return stats, err
 	}
 	defer tx.Rollback()
-	if err := resetTables(tx); err != nil {
+	if err := store.ResetTables(tx); err != nil {
 		return stats, err
 	}
 

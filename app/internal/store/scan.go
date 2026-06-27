@@ -1,4 +1,4 @@
-package main
+package store
 
 // 数据层：行扫描辅助（projects 列顺序、NULL 处理）。
 

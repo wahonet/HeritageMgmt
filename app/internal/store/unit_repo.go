@@ -1,4 +1,4 @@
-package main
+package store
 
 // 数据层：文物单位(units)相关查询（均为 *Store 方法，满足 UnitRepository）。
 

@@ -1,14 +1,13 @@
-package main
-
-// 应用配置容器（DI 根的数据来源）：集中持有路径、文档/工作流配置、LLM 配置，
-// 取代原先散落的包级全局单例（appBase/dataDir/projectsDir/dbPath/docCfg/wfCfg/absBasicdata/llmCfg）。
-// 由 main 在启动时通过 NewConfig 自顶向下构造，再注入 Store/Service/Server。
+// Package config 集中持有应用配置容器（DI 根的数据来源）：路径、文档/工作流配置、LLM 配置。
+// 取代原先散落的包级全局单例。由 cmd 在启动时通过 NewConfig 自顶向下构造，再注入 Store/Service/Server。
+package config
 
 import (
 	"encoding/json"
 	"os"
 	"path/filepath"
 
+	"heritage-mgmt/assets"
 	"heritage-mgmt/internal/domain"
 	"heritage-mgmt/internal/llm"
 )
@@ -16,7 +15,7 @@ import (
 // basicdataDir 默认 Basicdata 目录（相对可执行文件同级）
 const basicdataDir = "../Basicdata"
 
-// Config 持有全部运行期配置。所有层通过依赖注入读取它，不再访问包级全局。
+// Config 持有全部运行期配置。所有层通过依赖注入读取它。
 type Config struct {
 	AppBase      string
 	DataDir      string
@@ -51,18 +50,18 @@ func ResolvePaths() (appBase, dataDir, projectsDir, dbPath string) {
 	return
 }
 
-// readConfigFile 读取 config/<name>：磁盘优先，否则回退内嵌模板。
-func readConfigFile(appBase, name string) ([]byte, error) {
+// ReadConfigFile 读取 config/<name>：磁盘优先，否则回退内嵌模板。
+func ReadConfigFile(appBase, name string) ([]byte, error) {
 	if b, err := os.ReadFile(filepath.Join(appBase, "config", name)); err == nil {
 		return b, nil
 	}
-	return configFS.ReadFile("config/" + name)
+	return assets.ConfigFS.ReadFile("config/" + name)
 }
 
 // LoadDocWorkflow 加载 doc_types.json 与 workflow.json。
 func LoadDocWorkflow(appBase string) (domain.DocTypeCfg, domain.Workflow, error) {
 	var doc domain.DocTypeCfg
-	b, err := readConfigFile(appBase, "doc_types.json")
+	b, err := ReadConfigFile(appBase, "doc_types.json")
 	if err != nil {
 		return doc, domain.Workflow{}, err
 	}
@@ -70,7 +69,7 @@ func LoadDocWorkflow(appBase string) (domain.DocTypeCfg, domain.Workflow, error)
 		return doc, domain.Workflow{}, err
 	}
 	var wf domain.Workflow
-	b, err = readConfigFile(appBase, "workflow.json")
+	b, err = ReadConfigFile(appBase, "workflow.json")
 	if err != nil {
 		return doc, wf, err
 	}
@@ -84,7 +83,7 @@ func LoadDocWorkflow(appBase string) (domain.DocTypeCfg, domain.Workflow, error)
 // 密钥绝不内嵌——优先 app/llm.json（磁盘），其次环境变量 DEEPSEEK_API_KEY。
 func LoadLLM(appBase string) llm.Config {
 	var raw map[string]interface{}
-	if b, err := readConfigFile(appBase, "llm.json"); err == nil {
+	if b, err := ReadConfigFile(appBase, "llm.json"); err == nil {
 		json.Unmarshal(b, &raw)
 	}
 	if raw == nil {

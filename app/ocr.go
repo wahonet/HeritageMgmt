@@ -8,7 +8,7 @@ package main
 // 依赖：需在执行OCR的机器上安装 Tesseract(含chi_sim) 和 任一PDF渲染工具; 需联网调用DeepSeek。
 // 主程序(浏览/编辑/导出)不依赖这些,保持离线纯Go。
 //
-// OCRService 依赖注入 projects 仓储、*Config 与 LLM 客户端（llm.Client），
+// OCRService 依赖注入 projects 仓储、*config.Config 与 LLM 客户端（llm.Client），
 // 不再访问任何包级全局。
 
 import (
@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"heritage-mgmt/internal/config"
 	"heritage-mgmt/internal/llm"
 	"heritage-mgmt/internal/ocr"
 )
@@ -34,7 +35,7 @@ func llmTimeout(cfg llm.Config, def time.Duration) time.Duration {
 // OCRService 扫描工程合同并经大模型提取结构化字段。
 type OCRService struct {
 	projects ProjectRepository
-	cfg      *Config
+	cfg      *config.Config
 	llm      *llm.Client
 	llmCfg   llm.Config
 }

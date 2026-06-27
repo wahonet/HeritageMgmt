@@ -1,12 +1,14 @@
 package main
 
-// HTTP 静态资源服务辅助。内嵌的 staticFS/configFS 仍为包级（编译期内嵌常量，非可变全局）。
+// HTTP 静态资源服务辅助。内嵌资源现集中由 assets 包提供。
 
 import (
 	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"heritage-mgmt/assets"
 )
 
 // staticFileSystem 优先用磁盘 static/ 目录（便于替换前端），否则回退内嵌资源。
@@ -15,7 +17,7 @@ func staticFileSystem(appBase string) http.FileSystem {
 	if _, err := os.Stat(disk); err == nil {
 		return http.Dir(disk)
 	}
-	sub, _ := fs.Sub(staticFS, "static")
+	sub, _ := fs.Sub(assets.StaticFS, "static")
 	return http.FS(sub)
 }
 

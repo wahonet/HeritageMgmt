@@ -1,4 +1,4 @@
-package main
+package store
 
 // 数据层：连接与生命周期。
 // Store 是唯一持有 *sql.DB 的地方；所有 *_repo.go 均为其方法，Store 同时满足
@@ -7,6 +7,8 @@ package main
 
 import (
 	"database/sql"
+
+	"heritage-mgmt/internal/config"
 
 	_ "modernc.org/sqlite"
 )
@@ -18,7 +20,7 @@ type Store struct {
 }
 
 // NewStore 打开并初始化数据库（建表 + 旧库字段迁移）。
-func NewStore(cfg *Config) (*Store, error) {
+func NewStore(cfg *config.Config) (*Store, error) {
 	d, err := sql.Open("sqlite", cfg.DBPath)
 	if err != nil {
 		return nil, err
@@ -51,7 +53,7 @@ func (s *Store) Close() error {
 }
 
 // Reopen 关闭当前连接并以同一路径重新打开、建表、迁移（供数据恢复后重启使用）。
-func (s *Store) Reopen(cfg *Config) error {
+func (s *Store) Reopen(cfg *config.Config) error {
 	if s.db != nil {
 		s.db.Close()
 		s.db = nil

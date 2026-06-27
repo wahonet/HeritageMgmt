@@ -1,33 +1,28 @@
 package main
 
-// 入口：embed、CLI、组装 App、启动服务。
-// 已无任何包级可变全局：db/paths/docCfg/wfCfg/absBasicdata/llmCfg/llmClient 全部由
-// Config 注入或作为依赖在 NewApp 中组装（仅 staticFS/configFS 内嵌常量保留为包级）。
+// 入口（C1 过渡：仍在 package main；C3 迁至 cmd/heritage）：CLI、组装 App、启动服务。
+// 已无任何包级可变全局；embed 已移至 assets 包。
 
 import (
-	"embed"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
+
+	"heritage-mgmt/internal/config"
+	"heritage-mgmt/internal/store"
 )
 
-//go:embed all:static
-var staticFS embed.FS
-
-//go:embed all:config
-var configFS embed.FS
-
 func main() {
-	cfg, err := NewConfig()
+	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Fatal("加载配置失败: ", err)
 	}
-	store, err := NewStore(cfg)
+	st, err := store.NewStore(cfg)
 	if err != nil {
 		log.Fatal("打开数据库失败: ", err)
 	}
-	app := NewApp(cfg, store)
+	app := NewApp(cfg, st)
 	srv := app.Server()
 
 	// 命令行: -ocr-all 批量OCR所有工程(已三类单位齐全的自动跳过)
@@ -82,7 +77,7 @@ func main() {
 		return
 	}
 	// 数据库为空则自动导入
-	if store.CountProjects() == 0 {
+	if st.CountProjects() == 0 {
 		fmt.Println("⚠ 数据库为空，正在自动导入 Basicdata ...")
 		srv.imp.ImportAll(true)
 	}

@@ -1,4 +1,4 @@
-package main
+package store
 
 // 数据层：工程(projects)相关查询与维护（均为 *Store 方法，满足 ProjectRepository）。
 

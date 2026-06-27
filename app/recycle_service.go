@@ -1,12 +1,13 @@
 package main
 
 // 业务编排：工程/单位的删除、回收站恢复与彻底删除（协调 DB 记录与磁盘文件）。
-// RecycleService 依赖注入 ProjectRepository/UnitRepository 接口与 *Config，不再访问包级全局。
+// RecycleService 依赖注入 ProjectRepository/UnitRepository 接口与 *config.Config，不再访问包级全局。
 
 import (
 	"os"
 	"path/filepath"
 
+	"heritage-mgmt/internal/config"
 	"heritage-mgmt/internal/domain"
 )
 
@@ -14,7 +15,7 @@ import (
 type RecycleService struct {
 	projects ProjectRepository
 	units    UnitRepository
-	cfg      *Config
+	cfg      *config.Config
 }
 
 // recycleFolderToBin 将工程归档目录移入回收站(保留文件)；目录不存在则忽略。

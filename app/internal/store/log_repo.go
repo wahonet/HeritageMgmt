@@ -1,4 +1,4 @@
-package main
+package store
 
 // 数据层：操作日志(logs)（均为 *Store 方法，满足 LogRepository）。
 

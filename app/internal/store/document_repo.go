@@ -1,4 +1,4 @@
-package main
+package store
 
 // 数据层：文档(documents)相关查询与维护（均为 *Store 方法，满足 DocumentRepository）。
 

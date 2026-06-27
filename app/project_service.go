@@ -2,7 +2,7 @@ package main
 
 // 业务编排：工程聚合服务。合并原 analyze.go（缺项检测/资质校验）与 project_service.go
 // （新建向导/列表富化/看板/字段更新/文件树）。依赖注入 ProjectRepository/UnitRepository/
-// DocumentRepository 接口与 *Config，不再访问任何包级全局。
+// DocumentRepository 接口与 *config.Config，不再访问任何包级全局。
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"heritage-mgmt/internal/config"
 	"heritage-mgmt/internal/domain"
 )
 
@@ -18,7 +19,7 @@ type ProjectService struct {
 	projects ProjectRepository
 	units    UnitRepository
 	docs     DocumentRepository
-	cfg      *Config
+	cfg      *config.Config
 }
 
 // CreateProjectInput 新建工程向导的输入
