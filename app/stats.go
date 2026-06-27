@@ -3,21 +3,11 @@ package main
 import (
 	"net/http"
 	"sort"
+
+	"heritage-mgmt/internal/domain"
 )
 
-type gs struct {
-	K       string  `json:"k"`
-	N       int     `json:"count"`
-	Funding float64 `json:"funding"` // 中央指标
-	Paid    float64 `json:"paid"`    // 总已支付
-	Pending float64 `json:"pending"` // 总待支付=指标-已付
-	EngC    float64 `json:"eng_contract"`
-	EngP    float64 `json:"eng_paid"`
-	SupC    float64 `json:"sup_contract"`
-	SupP    float64 `json:"sup_paid"`
-	DesC    float64 `json:"des_contract"`
-	DesP    float64 `json:"des_paid"`
-}
+// gs 统计聚合类型已迁移至 internal/domain.StatGroup
 
 func handleStats(w http.ResponseWriter, r *http.Request) {
 	projects, _ := ListProjects(0, "", "")
@@ -32,10 +22,10 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 		}
 		return 0
 	}
-	add := func(m map[string]*gs, key string, p Project) {
+	add := func(m map[string]*domain.StatGroup, key string, p domain.Project) {
 		g := m[key]
 		if g == nil {
-			g = &gs{K: key}
+			g = &domain.StatGroup{K: key}
 			m[key] = g
 		}
 		g.N++
@@ -48,20 +38,20 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 		g.DesC += fv(p.DesContract)
 		g.DesP += fv(p.DesPaid)
 	}
-	fin := func(g *gs) { g.Pending = g.Funding - g.Paid }
-	toslice := func(m map[string]*gs) []gs {
-		out := []gs{}
+	fin := func(g *domain.StatGroup) { g.Pending = g.Funding - g.Paid }
+	toslice := func(m map[string]*domain.StatGroup) []domain.StatGroup {
+		out := []domain.StatGroup{}
 		for _, g := range m {
 			fin(g)
 			out = append(out, *g)
 		}
 		return out
 	}
-	byUnit := map[string]*gs{}
-	byType := map[string]*gs{}
-	byYear := map[string]*gs{}
-	byStatus := map[string]*gs{}
-	var tot gs
+	byUnit := map[string]*domain.StatGroup{}
+	byType := map[string]*domain.StatGroup{}
+	byYear := map[string]*domain.StatGroup{}
+	byStatus := map[string]*domain.StatGroup{}
+	var tot domain.StatGroup
 	for _, p := range projects {
 		add(byUnit, uname[p.UnitID], p)
 		tp := p.Ptype

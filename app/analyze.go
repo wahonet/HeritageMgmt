@@ -1,24 +1,15 @@
 package main
 
-import "strings"
+import (
+	"strings"
 
-type TypeStatus struct {
-	Code     string `json:"code"`
-	Name     string `json:"name"`
-	Required bool   `json:"required"`
-	Stage    string `json:"stage"`
-	Count    int    `json:"count"`
-	Has      bool   `json:"has"`
-}
-type StageOut struct {
-	Code      string       `json:"code"`
-	Name      string       `json:"name"`
-	DocCount  int          `json:"doc_count"`
-	Types     []TypeStatus `json:"types"`
-	Documents []Document   `json:"documents"`
-}
+	"heritage-mgmt/internal/domain"
+)
 
-func analyzeProject(pid int64) map[string]interface{} {
+// TypeStatus/StageOut/ProjectDetail 已迁移至 internal/domain
+
+// analyzeProject 汇总单个工程的缺项检测、阶段聚合与资质校验，返回强类型结果。
+func analyzeProject(pid int64) *domain.ProjectDetail {
 	proj, err := GetProject(pid)
 	if err != nil || proj == nil {
 		return nil
@@ -29,10 +20,10 @@ func analyzeProject(pid int64) map[string]interface{} {
 		counts[d.DocType]++
 	}
 	// 类型状态
-	var typeStatus []TypeStatus
+	var typeStatus []domain.TypeStatus
 	for _, t := range docCfg.Types {
 		n := counts[t.Code]
-		typeStatus = append(typeStatus, TypeStatus{
+		typeStatus = append(typeStatus, domain.TypeStatus{
 			Code: t.Code, Name: t.Name, Required: t.Required,
 			Stage: t.Stage, Count: n, Has: n > 0,
 		})
@@ -62,14 +53,14 @@ func analyzeProject(pid int64) map[string]interface{} {
 		completeness = requiredHave * 100 / requiredTotal
 	}
 	// 阶段
-	var stages []StageOut
-	tsByCode := map[string]TypeStatus{}
+	var stages []domain.StageOut
+	tsByCode := map[string]domain.TypeStatus{}
 	for _, ts := range typeStatus {
 		tsByCode[ts.Code] = ts
 	}
 	for _, s := range wfCfg.Stages {
-		var stTypes []TypeStatus
-		var stDocs []Document
+		var stTypes []domain.TypeStatus
+		var stDocs []domain.Document
 		for _, d := range docs {
 			for _, c := range s.Docs {
 				if d.DocType == c {
@@ -83,17 +74,12 @@ func analyzeProject(pid int64) map[string]interface{} {
 				stTypes = append(stTypes, ts)
 			}
 		}
-		stages = append(stages, StageOut{
+		stages = append(stages, domain.StageOut{
 			Code: s.Code, Name: s.Name, DocCount: len(stDocs),
 			Types: stTypes, Documents: stDocs,
 		})
 	}
-	if missingReq == nil {
-		missingReq = []string{}
-	}
-	if missingOpt == nil {
-		missingOpt = []string{}
-	}
+	// 规范化为非 nil 切片，保证 JSON 输出为 [] 而非 null
 	if missingReq == nil {
 		missingReq = []string{}
 	}
@@ -104,40 +90,37 @@ func analyzeProject(pid int64) map[string]interface{} {
 	if qw == nil {
 		qw = []string{}
 	}
-	return map[string]interface{}{
-		"project":          proj,
-		"unit_level":       unitLevel(proj.UnitID),
-		"documents":        docs,
-		"type_status":      typeStatus,
-		"stages":           stages,
-		"missing_required": missingReq,
-		"missing_optional": missingOpt,
-		"completeness":     completeness,
-		"qual_warnings":    qw,
+	return &domain.ProjectDetail{
+		Project:         proj,
+		UnitLevel:       unitLevel(proj.UnitID),
+		Documents:       docs,
+		TypeStatus:      typeStatus,
+		Stages:          stages,
+		MissingRequired: missingReq,
+		MissingOptional: missingOpt,
+		Completeness:    completeness,
+		QualWarnings:    qw,
 	}
 }
-func qualWarnings(p *Project) []string {
+
+// qualRules: 各保护级别对 设计/施工/监理 资质的最低要求（""=不限）。
+// TODO(Step 10): 迁移至 config/rules.json，实现配置驱动。
+var qualRules = map[string]struct{ design, construction, supervision string }{
+	"国保": {design: "甲级", construction: "一级", supervision: "甲级"},
+}
+
+func qualWarnings(p *domain.Project) []string {
 	var warns []string
 	level := unitLevel(p.UnitID)
 	if level == "" {
 		return warns
 	}
-	type chk struct {
-		label, qual, unit, req string
-	}
-	var checks []chk
-	if level == "国保" {
-		checks = []chk{
-			{"设计单位资质", p.DesignQual, p.DesignUnit, "甲级"},
-			{"施工单位资质", p.ConstructionQual, p.ConstructionUnit, "一级"},
-			{"监理单位资质", p.SupervisionQual, p.SupervisionUnit, "甲级"},
-		}
-	} else {
-		checks = []chk{
-			{"设计单位资质", p.DesignQual, p.DesignUnit, ""},
-			{"施工单位资质", p.ConstructionQual, p.ConstructionUnit, ""},
-			{"监理单位资质", p.SupervisionQual, p.SupervisionUnit, ""},
-		}
+	// 未配置的级别返回零值结构体（全 ""），即仅校验"未填写"，不校验资质等级阈值
+	req := qualRules[level]
+	checks := []struct{ label, qual, unit, req string }{
+		{"设计单位资质", p.DesignQual, p.DesignUnit, req.design},
+		{"施工单位资质", p.ConstructionQual, p.ConstructionUnit, req.construction},
+		{"监理单位资质", p.SupervisionQual, p.SupervisionUnit, req.supervision},
 	}
 	for _, c := range checks {
 		switch {

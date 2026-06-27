@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -43,7 +42,6 @@ func handleExportLedger(w http.ResponseWriter, r *http.Request) {
 	var tFund, tEng, tPaid float64
 	for _, p := range projects {
 		d := analyzeProject(p.ID)
-		miss, _ := d["missing_required"].([]string)
 		seq := ""
 		if p.Seq != nil {
 			seq = strconv.FormatInt(*p.Seq, 10)
@@ -54,7 +52,7 @@ func handleExportLedger(w http.ResponseWriter, r *http.Request) {
 			fval(p.CentralFunding), fval(p.EngContract), fval(p.EngPaid),
 			fval(p.SupContract), fval(p.SupPaid), fval(p.DesContract), fval(p.DesPaid),
 			fval(p.ExpertFee), fval(p.TotalPaid),
-			d["completeness"], strings.Join(miss, "、"), CountDocs(p.ID),
+			d.Completeness, strings.Join(d.MissingRequired, "、"), CountDocs(p.ID),
 			p.ConstructionUnit, p.ConstructionQual, p.DesignUnit, p.DesignQual,
 			p.SupervisionUnit, p.SupervisionQual, p.ProgressNote,
 		}
@@ -94,15 +92,4 @@ func fval(p *float64) interface{} {
 		return ""
 	}
 	return *p
-}
-func urlEncode(s string) string {
-	var b strings.Builder
-	for _, c := range []byte(s) {
-		if (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' || c == '~' {
-			b.WriteByte(c)
-		} else {
-			b.WriteString(fmt.Sprintf("%%%02X", c))
-		}
-	}
-	return b.String()
 }
