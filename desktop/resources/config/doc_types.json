@@ -1,0 +1,103 @@
+{
+  "_comment": "文档分类配置。keywords 按顺序匹配，先命中先归类。required=是否必备文档(用于缺项检测)。",
+  "types": [
+    {
+      "code": "approval",
+      "name": "批复文",
+      "keywords": ["批复文", "方案的批复", "方案批复", "设计方案的批复", "方案的意见"],
+      "stage": "approve",
+      "required": true,
+      "desc": "方案设计批复文件（如 省级文物行政部门文号批复）"
+    },
+    {
+      "code": "funding",
+      "name": "资金下达指标文",
+      "keywords": ["资金下达指标文", "指标文", "预算指标", "资金下达文件", "资金下达"],
+      "stage": "funding",
+      "required": true,
+      "desc": "中央/省/市文物保护资金下达文件"
+    },
+    {
+      "code": "construction_contract",
+      "name": "项目合同",
+      "keywords": ["竣工资料（含项目合同）", "采购项目合同", "项目合同", "施工合同"],
+      "stage": "bidding",
+      "required": true,
+      "desc": "施工/政府采购合同"
+    },
+    {
+      "code": "design_contract",
+      "name": "设计合同",
+      "keywords": ["设计项目合同书", "勘察设计服务合同", "设计合同", "设计项目合同"],
+      "stage": "design",
+      "required": false,
+      "desc": "勘察设计委托合同"
+    },
+    {
+      "code": "supervision_contract",
+      "name": "监理合同",
+      "keywords": ["监理合同", "委托监理合同", "建设工程监理合同", "建设工程委托监理"],
+      "stage": "supervision",
+      "required": false,
+      "desc": "工程监理委托合同"
+    },
+    {
+      "code": "start_report",
+      "name": "开工报告",
+      "keywords": ["开工报告", "开工报审表", "开工申报单", "开工审报", "开工报审"],
+      "stage": "construction",
+      "required": true,
+      "desc": "施工开工报告/报审表"
+    },
+    {
+      "code": "acceptance",
+      "name": "验收",
+      "keywords": ["四方验评", "初验意见", "初验", "验收意见", "竣工报告", "竣工验收", "竣工资料", "验评", "验收"],
+      "stage": "acceptance",
+      "required": true,
+      "desc": "竣工验收/四方验评/初验意见"
+    },
+    {
+      "code": "engineering_fee",
+      "name": "工程费",
+      "keywords": ["工程费"],
+      "stage": "acceptance",
+      "required": false,
+      "desc": "工程款支出凭证"
+    },
+    {
+      "code": "design_fee",
+      "name": "设计费",
+      "keywords": ["设计费"],
+      "stage": "design",
+      "required": false,
+      "desc": "设计费支出凭证"
+    },
+    {
+      "code": "supervision_fee",
+      "name": "监理费",
+      "keywords": ["监理费"],
+      "stage": "supervision",
+      "required": false,
+      "desc": "监理费支出凭证"
+    },
+    {
+      "code": "expert_fee",
+      "name": "专家费",
+      "keywords": ["专家费", "专家评审费", "专家劳务", "专家制作", "专家评审"],
+      "stage": "review",
+      "required": false,
+      "desc": "专家评审/劳务费凭证"
+    },
+    {
+      "code": "catalog",
+      "name": "目录",
+      "keywords": ["目录"],
+      "stage": "archive",
+      "required": false,
+      "desc": "工程档案目录"
+    }
+  ],
+  "unknown_code": "other",
+  "unknown_name": "其他"
+}

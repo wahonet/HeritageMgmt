@@ -1,0 +1,10 @@
+# 构建产物（按架构分目录：build-amd64 / build-arm64）
+/build*/
+/dist/
+
+# 运行时数据（与 exe 同级，含敏感数据库/归档文件）
+/data/
+
+# 运行时磁盘配置覆盖（空则用 resources 内嵌默认；可能含密钥，勿提交）
+/config/
+/llm.json

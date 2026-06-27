@@ -1,0 +1,10 @@
+{
+  "_comment": "业务规则（取代后端硬编码）：资质校验阈值 + 工程状态推导关键词。磁盘 config/rules.json 优先覆盖此内嵌默认。",
+  "qual_thresholds": {
+    "国保": { "design": "甲级", "construction": "一级", "supervision": "甲级" }
+  },
+  "status_keywords": {
+    "已竣工": ["验收", "竣工", "完工"],
+    "在建": ["在建", "施工"]
+  }
+}
