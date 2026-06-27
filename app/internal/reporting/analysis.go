@@ -8,9 +8,16 @@ import (
 	"heritage-mgmt/internal/llm"
 )
 
+// LLMClient 是 reporting 消费大模型所需的端口（仅依赖 Chat/Configured）。
+// *llm.Client 结构化满足该接口，调用方可注入替身做无网络单测。
+type LLMClient interface {
+	Chat(messages []llm.Message, opts llm.Options) (string, error)
+	Configured() bool
+}
+
 // GenerateAnalysis 调用大模型基于报告数据生成分析文本。
 // 未配置密钥时返回占位说明（无错误），与原行为一致。
-func GenerateAnalysis(client *llm.Client, rd ReportData, timeout time.Duration) (string, error) {
+func GenerateAnalysis(client LLMClient, rd ReportData, timeout time.Duration) (string, error) {
 	if !client.Configured() {
 		return "（未配置大模型API密钥，分析报告功能不可用。）", nil
 	}

@@ -2,7 +2,7 @@ package main
 
 // 工程报告PDF导出的 HTTP 处理：取分析数据 → 组装 reporting.ReportData →
 // 调 reporting 生成分析文本与PDF。排版/分析逻辑见 internal/reporting。
-// 提交 A 过渡期：仍读取全局 llmClient/llmTimeout；提交 B 改为注入 LLM。
+// LLM 客户端由 Server 持有并注入（reporting.GenerateAnalysis 收 LLMClient 接口）。
 
 import (
 	"fmt"
@@ -32,7 +32,7 @@ func (s *Server) handleReportPDF(w http.ResponseWriter, r *http.Request) {
 		QualWarnings:    d.QualWarnings,
 	}
 
-	analysis, err := reporting.GenerateAnalysis(llmClient, rd, llmTimeout(120*time.Second))
+	analysis, err := reporting.GenerateAnalysis(s.llm, rd, llmTimeout(s.cfg.LLM, 120*time.Second))
 	if err != nil {
 		analysis = "分析报告生成失败：" + err.Error()
 	}

@@ -1,8 +1,8 @@
 package main
 
 // 入口：embed、CLI、组装 App、启动服务。
-// 已无任何包级可变全局（db/paths/docCfg/wfCfg/absBasicdata 均由 Config 注入）；
-// llmCfg/llmClient 为提交 A 过渡（提交 B 移除）。
+// 已无任何包级可变全局：db/paths/docCfg/wfCfg/absBasicdata/llmCfg/llmClient 全部由
+// Config 注入或作为依赖在 NewApp 中组装（仅 staticFS/configFS 内嵌常量保留为包级）。
 
 import (
 	"embed"

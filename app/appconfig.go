@@ -61,23 +61,23 @@ func readConfigFile(appBase, name string) ([]byte, error) {
 
 // LoadDocWorkflow 加载 doc_types.json 与 workflow.json。
 func LoadDocWorkflow(appBase string) (domain.DocTypeCfg, domain.Workflow, error) {
-	var docCfg domain.DocTypeCfg
+	var doc domain.DocTypeCfg
 	b, err := readConfigFile(appBase, "doc_types.json")
 	if err != nil {
-		return docCfg, domain.Workflow{}, err
+		return doc, domain.Workflow{}, err
 	}
-	if err := json.Unmarshal(b, &docCfg); err != nil {
-		return docCfg, domain.Workflow{}, err
+	if err := json.Unmarshal(b, &doc); err != nil {
+		return doc, domain.Workflow{}, err
 	}
-	var wfCfg domain.Workflow
+	var wf domain.Workflow
 	b, err = readConfigFile(appBase, "workflow.json")
 	if err != nil {
-		return docCfg, wfCfg, err
+		return doc, wf, err
 	}
-	if err := json.Unmarshal(b, &wfCfg); err != nil {
-		return docCfg, wfCfg, err
+	if err := json.Unmarshal(b, &wf); err != nil {
+		return doc, wf, err
 	}
-	return docCfg, wfCfg, nil
+	return doc, wf, nil
 }
 
 // LoadLLM 加载大模型配置：基础字段来自 config/llm.json（磁盘优先，否则内嵌模板）；

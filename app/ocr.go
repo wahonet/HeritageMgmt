@@ -5,8 +5,11 @@ package main
 // 依赖: 需在执行OCR的机器上安装 Tesseract(含chi_sim) 和 任一PDF渲染工具; 需联网调用DeepSeek。
 // 主程序(浏览/编辑/导出)不依赖这些,保持离线纯Go。
 //
-// 提交 A 过渡期：llmCfg/llmClient 仍为包级全局（由 NewApp 从 Config 填充），
-// OCRService 仅注入 projects 仓储与 *Config；提交 B 将彻底移除这两个全局并把 LLM 注入服务。
+// 依赖：需在执行OCR的机器上安装 Tesseract(含chi_sim) 和 任一PDF渲染工具; 需联网调用DeepSeek。
+// 主程序(浏览/编辑/导出)不依赖这些,保持离线纯Go。
+//
+// OCRService 依赖注入 projects 仓储、*Config 与 LLM 客户端（llm.Client），
+// 不再访问任何包级全局。
 
 import (
 	"encoding/json"
@@ -20,43 +23,31 @@ import (
 	"heritage-mgmt/internal/ocr"
 )
 
-// llmCfg/llmClient: 大模型配置与客户端（HTTP 逻辑见 internal/llm）。
-// TODO(Commit B): 删除这两个全局，改为注入 OCRService/ReportService。
-var (
-	llmCfg    llm.Config
-	llmClient = llm.New(llm.Config{})
-)
-
-// llmTimeout 返回调用超时：优先配置的 timeout_seconds，否则用给定默认值。
-func llmTimeout(def time.Duration) time.Duration {
-	if llmCfg.TimeoutSeconds > 0 {
-		return time.Duration(llmCfg.TimeoutSeconds) * time.Second
+// llmTimeout 返回调用超时：优先 cfg 的 timeout_seconds，否则用给定默认值。
+func llmTimeout(cfg llm.Config, def time.Duration) time.Duration {
+	if cfg.TimeoutSeconds > 0 {
+		return time.Duration(cfg.TimeoutSeconds) * time.Second
 	}
 	return def
 }
 
-// initLLMGlobals 提交 A 过渡桥：用 Config 填充包级 llmCfg/llmClient，
-// 供仍读取全局的 OCR/report 使用。提交 B 删除本函数与两个全局。
-func initLLMGlobals(cfg *Config) {
-	llmCfg = cfg.LLM
-	llmClient = llm.New(cfg.LLM)
-}
-
-// OCRService 扫描工程合同并经大模型提取结构化字段。提交 A 仍读取过渡全局 llmCfg/llmClient。
+// OCRService 扫描工程合同并经大模型提取结构化字段。
 type OCRService struct {
 	projects ProjectRepository
 	cfg      *Config
+	llm      *llm.Client
+	llmCfg   llm.Config
 }
 
 // extractWithLLM 调大模型从OCR文本提取结构化字段
 func (svc *OCRService) extractWithLLM(text string) (map[string]string, error) {
-	content, err := llmClient.Chat(
-		[]llm.Message{{Role: "user", Content: llmCfg.ExtractionPrompt + "\n\n" + text}},
+	content, err := svc.llm.Chat(
+		[]llm.Message{{Role: "user", Content: svc.llmCfg.ExtractionPrompt + "\n\n" + text}},
 		llm.Options{
-			Temperature: llmCfg.Temperature,
-			MaxTokens:   int(llmCfg.MaxTokens),
+			Temperature: svc.llmCfg.Temperature,
+			MaxTokens:   int(svc.llmCfg.MaxTokens),
 			JSONObject:  true,
-			Timeout:     llmTimeout(90 * time.Second),
+			Timeout:     llmTimeout(svc.llmCfg, 90*time.Second),
 		},
 	)
 	if err != nil {

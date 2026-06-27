@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+
+	"heritage-mgmt/internal/llm"
 )
 
-// Server 是 HTTP 层的组合根：持有配置、Store、各仓储接口与各 service。
+// Server 是 HTTP 层的组合根：持有配置、Store、各仓储接口、各 service 与 LLM 客户端。
 type Server struct {
 	cfg      *Config
 	store    *Store
@@ -23,6 +25,7 @@ type Server struct {
 	imp      *ImportService
 	recycle  *RecycleService
 	ocrSvc   *OCRService
+	llm      *llm.Client
 }
 
 // Routes 组装 mux 并注册全部路由（从 main.go 迁入）。
