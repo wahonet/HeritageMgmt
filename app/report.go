@@ -2,6 +2,7 @@ package main
 
 // 工程报告PDF导出的 HTTP 处理：取分析数据 → 组装 reporting.ReportData →
 // 调 reporting 生成分析文本与PDF。排版/分析逻辑见 internal/reporting。
+// 提交 A 过渡期：仍读取全局 llmClient/llmTimeout；提交 B 改为注入 LLM。
 
 import (
 	"fmt"
@@ -14,9 +15,9 @@ import (
 )
 
 // handleReportPDF 生成工程报告PDF
-func handleReportPDF(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleReportPDF(w http.ResponseWriter, r *http.Request) {
 	pid, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	d := analyzeProject(pid)
+	d := s.proj.Analyze(pid)
 	if d == nil {
 		http.NotFound(w, r)
 		return
@@ -37,7 +38,7 @@ func handleReportPDF(w http.ResponseWriter, r *http.Request) {
 	}
 	rd.Analysis = analysis
 
-	pdf, err := reporting.Generate(rd, appBase)
+	pdf, err := reporting.Generate(rd, s.cfg.AppBase)
 	if err != nil {
 		writeJSON(w, map[string]interface{}{"error": err.Error()})
 		return
@@ -47,5 +48,5 @@ func handleReportPDF(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/pdf")
 	w.Header().Set("Content-Disposition", "attachment; filename*=UTF-8''"+urlEncode(filename))
 	w.Write(pdf)
-	InsertLog("导出报告", fmt.Sprintf("工程#%d %s", pid, proj.Name), filename)
+	s.logs.InsertLog("导出报告", fmt.Sprintf("工程#%d %s", pid, proj.Name), filename)
 }

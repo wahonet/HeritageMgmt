@@ -2,6 +2,7 @@ package main
 
 // 导入流程编排：扫描 Basicdata/ → 识别(classify) + Excel财务(excelimport) → 复制归档 → 入库。
 // 识别与财务解析的纯逻辑已分别迁至 internal/classify 与 internal/excelimport。
+// ImportService 依赖注入 *Store（事务）与 *Config（路径/配置），不再访问包级全局。
 
 import (
 	"fmt"
@@ -13,19 +14,23 @@ import (
 	"time"
 
 	"heritage-mgmt/internal/classify"
-	"heritage-mgmt/internal/domain"
 	"heritage-mgmt/internal/excelimport"
 )
 
-// 配置单例（由 config.go 加载，analyze/handlers/importer 等共享读取）
-var docCfg domain.DocTypeCfg
-var wfCfg domain.Workflow
-
+// ImportStats 导入统计。
 type ImportStats struct {
 	Units, Projects, Docs, Matched int
 }
 
-func ImportAll(basicdataDir string, verbose bool) (*ImportStats, error) {
+// ImportService 编排 Basicdata 批量导入（事务 + 扫描目录 + classify + excelimport + 落盘 + 入库）。
+type ImportService struct {
+	store *Store
+	cfg   *Config
+}
+
+// ImportAll 扫描 cfg.AbsBasicdata 导入全部数据；verbose 控制是否打印进度。
+func (svc *ImportService) ImportAll(verbose bool) (*ImportStats, error) {
+	basicdataDir := svc.cfg.AbsBasicdata
 	stats := &ImportStats{}
 	finRows := excelimport.LoadFinancials(basicdataDir)
 	if verbose {
@@ -47,7 +52,7 @@ func ImportAll(basicdataDir string, verbose bool) (*ImportStats, error) {
 	unitCache := map[string]int64{}
 	unitSort := map[string]int{} // 按导入顺序排序
 
-	tx, err := db.Begin()
+	tx, err := svc.store.Begin()
 	if err != nil {
 		return stats, err
 	}
@@ -59,8 +64,8 @@ func ImportAll(basicdataDir string, verbose bool) (*ImportStats, error) {
 	for _, folder := range projDirs {
 		srcDir := filepath.Join(basicdataDir, folder)
 		pname := classify.CleanProjectName(folder)
-		unitName, level, category := classify.DetectUnit(pname, wfCfg.Units.Rules)
-		ptype := classify.DetectType(pname, wfCfg.ProjectTypes.Rules)
+		unitName, level, category := classify.DetectUnit(pname, svc.cfg.WfCfg.Units.Rules)
+		ptype := classify.DetectType(pname, svc.cfg.WfCfg.ProjectTypes.Rules)
 		seq := classify.ParseSeq(folder)
 
 		// 单位
@@ -109,7 +114,7 @@ func ImportAll(basicdataDir string, verbose bool) (*ImportStats, error) {
 		}
 		projFolder := fmt.Sprintf("P%04d", pid)
 		tx.Exec("UPDATE projects SET folder=? WHERE id=?", projFolder, pid)
-		destRoot := filepath.Join(projectsDir, projFolder)
+		destRoot := filepath.Join(svc.cfg.ProjectsDir, projFolder)
 		os.MkdirAll(destRoot, 0755)
 
 		// 文件
@@ -119,7 +124,7 @@ func ImportAll(basicdataDir string, verbose bool) (*ImportStats, error) {
 				continue
 			}
 			fname := fe.Name()
-			code, tname := classify.ClassifyDoc(fname, docCfg.Types, docCfg.UnknownCode, docCfg.UnknownName)
+			code, tname := classify.ClassifyDoc(fname, svc.cfg.DocCfg.Types, svc.cfg.DocCfg.UnknownCode, svc.cfg.DocCfg.UnknownName)
 			destDir := filepath.Join(destRoot, code)
 			os.MkdirAll(destDir, 0755)
 			dst := filepath.Join(destDir, fname)
@@ -129,7 +134,7 @@ func ImportAll(basicdataDir string, verbose bool) (*ImportStats, error) {
 				}
 				continue
 			}
-			rel, _ := filepath.Rel(projectsDir, dst)
+			rel, _ := filepath.Rel(svc.cfg.ProjectsDir, dst)
 			rel = filepath.ToSlash(rel)
 			ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(fname), "."))
 			fi, _ := os.Stat(dst)

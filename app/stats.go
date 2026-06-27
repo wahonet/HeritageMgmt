@@ -1,5 +1,7 @@
 package main
 
+// 业务编排：统计聚合服务。依赖 ProjectRepository/UnitRepository 接口，可注入 mock。
+
 import (
 	"net/http"
 	"sort"
@@ -7,12 +9,17 @@ import (
 	"heritage-mgmt/internal/domain"
 )
 
-// gs 统计聚合类型已迁移至 internal/domain.StatGroup
+// StatsService 聚合工程统计（原 handleStats 的聚合逻辑）。
+type StatsService struct {
+	projects ProjectRepository
+	units    UnitRepository
+}
 
-func handleStats(w http.ResponseWriter, r *http.Request) {
-	projects, _ := ListProjects(0, "", "")
+// Aggregate 按单位/类型/年份/状态聚合资金与支付，返回与原约定一致的响应体。
+func (svc *StatsService) Aggregate() map[string]interface{} {
+	projects, _ := svc.projects.ListProjects(0, "", "")
 	uname := map[int64]string{}
-	units, _ := ListUnits()
+	units, _ := svc.units.ListUnits()
 	for _, u := range units {
 		uname[u.ID] = u.Name
 	}
@@ -87,11 +94,16 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 	ys := toslice(byYear)
 	sort.Slice(ys, func(i, j int) bool { return ys[i].K < ys[j].K })
 	ss := toslice(byStatus)
-	writeJSON(w, map[string]interface{}{
+	return map[string]interface{}{
 		"total":     tot,
 		"by_unit":   us,
 		"by_type":   ts,
 		"by_year":   ys,
 		"by_status": ss,
-	})
+	}
+}
+
+// handleStats GET /api/stats
+func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, s.stats.Aggregate())
 }

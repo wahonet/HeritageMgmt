@@ -1,6 +1,6 @@
 package main
 
-// 数据层：操作日志(logs)。
+// 数据层：操作日志(logs)（均为 *Store 方法，满足 LogRepository）。
 
 import (
 	"time"
@@ -8,16 +8,16 @@ import (
 	"heritage-mgmt/internal/domain"
 )
 
-func InsertLog(action, target, detail string) {
-	if db == nil {
+func (s *Store) InsertLog(action, target, detail string) {
+	if s == nil || s.db == nil {
 		return
 	}
-	db.Exec("INSERT INTO logs(ts,action,target,detail) VALUES(?,?,?,?)",
+	s.db.Exec("INSERT INTO logs(ts,action,target,detail) VALUES(?,?,?,?)",
 		time.Now().Format("2006-01-02 15:04:05"), action, target, detail)
 }
 
-func ListLogs(limit int) ([]domain.LogEntry, error) {
-	rows, err := db.Query("SELECT id,ts,action,target,detail FROM logs ORDER BY id DESC LIMIT ?", limit)
+func (s *Store) ListLogs(limit int) ([]domain.LogEntry, error) {
+	rows, err := s.db.Query("SELECT id,ts,action,target,detail FROM logs ORDER BY id DESC LIMIT ?", limit)
 	if err != nil {
 		return nil, err
 	}

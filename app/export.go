@@ -1,5 +1,7 @@
 package main
 
+// HTTP 处理：Excel 台账导出。仅做序列化/写入；取数经仓储接口与分析服务。
+
 import (
 	"log"
 	"net/http"
@@ -9,7 +11,7 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-func handleExportLedger(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleExportLedger(w http.ResponseWriter, r *http.Request) {
 	f := excelize.NewFile()
 	sheet := "文物保护工程台账"
 	f.SetSheetName(f.GetSheetName(0), sheet)
@@ -32,16 +34,16 @@ func handleExportLedger(w http.ResponseWriter, r *http.Request) {
 		Fill: excelize.Fill{Type: "pattern", Color: []string{"#E6D9BE"}, Pattern: 1},
 	})
 	f.SetCellStyle(sheet, "A1", "AB1", hstyle)
-	projects, _ := ListProjects(0, "", "")
+	projects, _ := s.projects.ListProjects(0, "", "")
 	uname := map[int64]string{}
-	units, _ := ListUnits()
+	units, _ := s.units.ListUnits()
 	for _, u := range units {
 		uname[u.ID] = u.Name
 	}
 	row := 2
 	var tFund, tEng, tPaid float64
 	for _, p := range projects {
-		d := analyzeProject(p.ID)
+		d := s.proj.Analyze(p.ID)
 		seq := ""
 		if p.Seq != nil {
 			seq = strconv.FormatInt(*p.Seq, 10)
@@ -52,7 +54,7 @@ func handleExportLedger(w http.ResponseWriter, r *http.Request) {
 			fval(p.CentralFunding), fval(p.EngContract), fval(p.EngPaid),
 			fval(p.SupContract), fval(p.SupPaid), fval(p.DesContract), fval(p.DesPaid),
 			fval(p.ExpertFee), fval(p.TotalPaid),
-			d.Completeness, strings.Join(d.MissingRequired, "、"), CountDocs(p.ID),
+			d.Completeness, strings.Join(d.MissingRequired, "、"), s.docs.CountDocs(p.ID),
 			p.ConstructionUnit, p.ConstructionQual, p.DesignUnit, p.DesignQual,
 			p.SupervisionUnit, p.SupervisionQual, p.ProgressNote,
 		}
@@ -87,6 +89,7 @@ func handleExportLedger(w http.ResponseWriter, r *http.Request) {
 		log.Println("导出Excel失败:", err)
 	}
 }
+
 func fval(p *float64) interface{} {
 	if p == nil {
 		return ""

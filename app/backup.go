@@ -16,9 +16,9 @@ import (
 )
 
 // ---- 备份 ----
-func handleBackup(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleBackup(w http.ResponseWriter, r *http.Request) {
 	// 先checkpoint把WAL写入主库
-	db.Exec("PRAGMA wal_checkpoint(TRUNCATE)")
+	s.store.Checkpoint()
 
 	stamp := time.Now().Format("20060102_150405")
 	filename := fmt.Sprintf("heritage_backup_%s.zip", stamp)
@@ -57,11 +57,11 @@ func handleBackup(w http.ResponseWriter, r *http.Request) {
 
 	// walkDir 递归添加目录
 	var walkErr error
-	filepath.Walk(dataDir, func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(s.cfg.DataDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}
-		rel, _ := filepath.Rel(dataDir, path)
+		rel, _ := filepath.Rel(s.cfg.DataDir, path)
 		// 跳过WAL/SHM临时文件(已checkpoint)
 		ext := strings.ToLower(filepath.Ext(path))
 		if ext == ".wal" || ext == ".shm" {
@@ -74,11 +74,11 @@ func handleBackup(w http.ResponseWriter, r *http.Request) {
 	})
 	_ = walkErr
 
-	InsertLog("数据备份", "全量备份", filename)
+	s.logs.InsertLog("数据备份", "全量备份", filename)
 }
 
 // ---- 恢复 ----
-func handleRestore(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleRestore(w http.ResponseWriter, r *http.Request) {
 	// 接收上传的zip文件
 	f, header, err := r.FormFile("file")
 	if err != nil {
@@ -119,14 +119,14 @@ func handleRestore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 关闭数据库连接
-	db.Close()
+	// 关闭数据库连接(恢复前必须关闭，避免Windows文件锁)
+	s.store.Close()
 
 	// 备份当前data目录(以防恢复失败)
-	backupDir := dataDir + "_pre_restore_" + time.Now().Format("150405")
-	os.Rename(dataDir, backupDir)
-	os.MkdirAll(dataDir, 0755)
-	os.MkdirAll(projectsDir, 0755)
+	backupDir := s.cfg.DataDir + "_pre_restore_" + time.Now().Format("150405")
+	os.Rename(s.cfg.DataDir, backupDir)
+	os.MkdirAll(s.cfg.DataDir, 0755)
+	os.MkdirAll(s.cfg.ProjectsDir, 0755)
 
 	// 解压
 	count := 0
@@ -137,7 +137,7 @@ func handleRestore(w http.ResponseWriter, r *http.Request) {
 		if zipName == f.Name {
 			continue // 不在data/下
 		}
-		dest := filepath.Join(dataDir, zipName)
+		dest := filepath.Join(s.cfg.DataDir, zipName)
 		os.MkdirAll(filepath.Dir(dest), 0755)
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(dest, 0755)
@@ -159,11 +159,11 @@ func handleRestore(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 重新打开数据库
-	if err := OpenDB(); err != nil {
+	if err := s.store.Reopen(s.cfg); err != nil {
 		writeJSON(w, map[string]interface{}{"ok": false, "error": "恢复后打开数据库失败: " + err.Error()})
 		return
 	}
 
-	InsertLog("数据恢复", "从备份恢复", fmt.Sprintf("解压%d个文件", count))
+	s.logs.InsertLog("数据恢复", "从备份恢复", fmt.Sprintf("解压%d个文件", count))
 	writeJSON(w, map[string]interface{}{"ok": true, "files": count})
 }

@@ -35,8 +35,8 @@ CREATE INDEX IF NOT EXISTS idx_logs_ts ON logs(ts);
 `
 
 // migrate 为旧版本数据库补齐新增字段
-func migrate() {
-	cols := tableColumns("projects")
+func (s *Store) migrate() {
+	cols := s.tableColumns("projects")
 	add := []string{
 		"construction_unit TEXT", "construction_qual TEXT",
 		"design_unit TEXT", "design_qual TEXT",
@@ -47,10 +47,11 @@ func migrate() {
 	for _, c := range add {
 		name := c[:idxSpace(c)]
 		if !cols[name] {
-			db.Exec("ALTER TABLE projects ADD COLUMN " + c)
+			s.db.Exec("ALTER TABLE projects ADD COLUMN " + c)
 		}
 	}
 }
+
 func idxSpace(s string) int {
 	for i, c := range s {
 		if c == ' ' {
@@ -59,9 +60,10 @@ func idxSpace(s string) int {
 	}
 	return len(s)
 }
-func tableColumns(table string) map[string]bool {
+
+func (s *Store) tableColumns(table string) map[string]bool {
 	m := map[string]bool{}
-	rows, err := db.Query("PRAGMA table_info(" + table + ")")
+	rows, err := s.db.Query("PRAGMA table_info(" + table + ")")
 	if err != nil {
 		return m
 	}
@@ -76,7 +78,7 @@ func tableColumns(table string) map[string]bool {
 	return m
 }
 
-// resetTables 清空工程/单位/文档/日志并重置自增序列
+// resetTables 清空工程/单位/文档并重置自增序列
 func resetTables(tx *sql.Tx) error {
 	for _, t := range []string{"documents", "projects", "units"} {
 		if _, err := tx.Exec("DELETE FROM " + t); err != nil {
