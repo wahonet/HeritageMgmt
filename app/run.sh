@@ -16,7 +16,9 @@ BIN=""
 [ -z "$BIN" ] && [ "$ARCH" = "aarch64" ] && [ -x "./heritage-mgmt-linux-arm64" ]  && BIN="./heritage-mgmt-linux-arm64"
 if [ -z "$BIN" ]; then
   echo "未找到对应架构的可执行文件(当前架构: $ARCH)。"
-  echo "请在 Windows 开发机执行: GOOS=linux GOARCH=amd64 go build -o heritage-mgmt-linux-amd64 ."
+  echo "请在 Windows 开发机执行(入口在 cmd/heritage):"
+  echo "  GOOS=linux GOARCH=amd64 go build -o heritage-mgmt-linux-amd64 ./cmd/heritage"
+  echo "  GOOS=linux GOARCH=arm64 go build -o heritage-mgmt-linux-arm64  ./cmd/heritage"
   exit 1
 fi
 ( xdg-open http://127.0.0.1:5000 >/dev/null 2>&1 & )
