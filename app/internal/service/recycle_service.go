@@ -1,4 +1,4 @@
-package main
+package service
 
 // 业务编排：工程/单位的删除、回收站恢复与彻底删除（协调 DB 记录与磁盘文件）。
 // RecycleService 依赖注入 ProjectRepository/UnitRepository 接口与 *config.Config，不再访问包级全局。

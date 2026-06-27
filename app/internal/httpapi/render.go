@@ -1,4 +1,4 @@
-package main
+package httpapi
 
 // HTTP 响应辅助：统一 JSON 输出与文件名编码。
 

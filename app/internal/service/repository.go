@@ -1,4 +1,4 @@
-package main
+package service
 
 // 仓储接口（Repository Ports）——遵循接口隔离（ISP），定义在 service 消费侧。
 // service 依赖这些接口而非具体 *sql.DB，从而可注入内存替身做无 IO 单测。

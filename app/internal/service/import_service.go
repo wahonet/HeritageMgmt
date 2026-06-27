@@ -1,4 +1,4 @@
-package main
+package service
 
 // 导入流程编排：扫描 Basicdata/ → 识别(classify) + Excel财务(excelimport) → 复制归档 → 入库。
 // 识别与财务解析的纯逻辑已分别迁至 internal/classify 与 internal/excelimport。

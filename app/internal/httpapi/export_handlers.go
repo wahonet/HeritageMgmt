@@ -1,4 +1,4 @@
-package main
+package httpapi
 
 // HTTP 处理：Excel 台账导出。仅做序列化/写入；取数经仓储接口与分析服务。
 

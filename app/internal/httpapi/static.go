@@ -1,4 +1,4 @@
-package main
+package httpapi
 
 // HTTP 静态资源服务辅助。内嵌资源现集中由 assets 包提供。
 

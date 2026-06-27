@@ -1,4 +1,4 @@
-package main
+package httpapi
 
 // 数据备份/恢复模块
 // 备份: SQLite数据库 + 项目文件 + 语言包 → zip

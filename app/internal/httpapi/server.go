@@ -1,4 +1,4 @@
-package main
+package httpapi
 
 // HTTP 传输层：Server 持有全部依赖（仓储接口 + service + *config.Config + *store.Store），
 // 所有 handler 为其方法，仅做请求解析/校验/序列化，业务逻辑下沉到 service。
@@ -11,6 +11,7 @@ import (
 
 	"heritage-mgmt/internal/config"
 	"heritage-mgmt/internal/llm"
+	"heritage-mgmt/internal/service"
 	"heritage-mgmt/internal/store"
 )
 
@@ -18,16 +19,34 @@ import (
 type Server struct {
 	cfg      *config.Config
 	store    *store.Store
-	projects ProjectRepository
-	units    UnitRepository
-	docs     DocumentRepository
-	logs     LogRepository
-	proj     *ProjectService
-	stats    *StatsService
-	imp      *ImportService
-	recycle  *RecycleService
-	ocrSvc   *OCRService
+	projects service.ProjectRepository
+	units    service.UnitRepository
+	docs     service.DocumentRepository
+	logs     service.LogRepository
+	proj     *service.ProjectService
+	stats    *service.StatsService
+	imp      *service.ImportService
+	recycle  *service.RecycleService
+	ocrSvc   *service.OCRService
 	llm      *llm.Client
+}
+
+// NewServer 构造 HTTP Server：注入配置、Store（同时满足 4 个仓储接口）、各 service 与 LLM 客户端。
+func NewServer(cfg *config.Config, st *store.Store, svc *service.Services, llm *llm.Client) *Server {
+	return &Server{
+		cfg:      cfg,
+		store:    st,
+		projects: st,
+		units:    st,
+		docs:     st,
+		logs:     st,
+		proj:     svc.Proj,
+		stats:    svc.Stats,
+		imp:      svc.Imp,
+		recycle:  svc.Recycle,
+		ocrSvc:   svc.OCR,
+		llm:      llm,
+	}
 }
 
 // Routes 组装 mux 并注册全部路由（从 main.go 迁入）。

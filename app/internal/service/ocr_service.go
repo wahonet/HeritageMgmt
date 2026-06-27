@@ -1,15 +1,10 @@
-package main
+package service
 
 // OCR + 大模型提取模块（可选功能）
 // 流程: 合同PDF -> 渲染成图片(mutool/pdftoppm/magick任一) -> tesseract OCR(chi_sim) -> DeepSeek提取结构化字段
 // 依赖: 需在执行OCR的机器上安装 Tesseract(含chi_sim) 和 任一PDF渲染工具; 需联网调用DeepSeek。
 // 主程序(浏览/编辑/导出)不依赖这些,保持离线纯Go。
-//
-// 依赖：需在执行OCR的机器上安装 Tesseract(含chi_sim) 和 任一PDF渲染工具; 需联网调用DeepSeek。
-// 主程序(浏览/编辑/导出)不依赖这些,保持离线纯Go。
-//
-// OCRService 依赖注入 projects 仓储、*config.Config 与 LLM 客户端（llm.Client），
-// 不再访问任何包级全局。
+// OCRService 依赖注入 projects 仓储、*config.Config 与 LLM 客户端，不再访问任何包级全局。
 
 import (
 	"encoding/json"
@@ -23,14 +18,6 @@ import (
 	"heritage-mgmt/internal/llm"
 	"heritage-mgmt/internal/ocr"
 )
-
-// llmTimeout 返回调用超时：优先 cfg 的 timeout_seconds，否则用给定默认值。
-func llmTimeout(cfg llm.Config, def time.Duration) time.Duration {
-	if cfg.TimeoutSeconds > 0 {
-		return time.Duration(cfg.TimeoutSeconds) * time.Second
-	}
-	return def
-}
 
 // OCRService 扫描工程合同并经大模型提取结构化字段。
 type OCRService struct {
@@ -48,7 +35,7 @@ func (svc *OCRService) extractWithLLM(text string) (map[string]string, error) {
 			Temperature: svc.llmCfg.Temperature,
 			MaxTokens:   int(svc.llmCfg.MaxTokens),
 			JSONObject:  true,
-			Timeout:     llmTimeout(svc.llmCfg, 90*time.Second),
+			Timeout:     llm.Timeout(svc.llmCfg, 90*time.Second),
 		},
 	)
 	if err != nil {

@@ -1,4 +1,4 @@
-package main
+package httpapi
 
 // 工程报告PDF导出的 HTTP 处理：取分析数据 → 组装 reporting.ReportData →
 // 调 reporting 生成分析文本与PDF。排版/分析逻辑见 internal/reporting。
@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"heritage-mgmt/internal/llm"
 	"heritage-mgmt/internal/reporting"
 )
 
@@ -32,7 +33,7 @@ func (s *Server) handleReportPDF(w http.ResponseWriter, r *http.Request) {
 		QualWarnings:    d.QualWarnings,
 	}
 
-	analysis, err := reporting.GenerateAnalysis(s.llm, rd, llmTimeout(s.cfg.LLM, 120*time.Second))
+	analysis, err := reporting.GenerateAnalysis(s.llm, rd, llm.Timeout(s.cfg.LLM, 120*time.Second))
 	if err != nil {
 		analysis = "分析报告生成失败：" + err.Error()
 	}

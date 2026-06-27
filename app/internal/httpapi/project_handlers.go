@@ -1,10 +1,11 @@
-package main
+package httpapi
 
 // HTTP 处理：工程相关（列表/详情/更新/看板/文件树/新建）。均为 *Server 方法。
 
 import (
 	"encoding/json"
 	"fmt"
+	"heritage-mgmt/internal/service"
 	"net/http"
 	"strconv"
 	"strings"
@@ -66,7 +67,7 @@ func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 		Status  string `json:"status"`
 	}
 	json.NewDecoder(r.Body).Decode(&body)
-	pid, folder, err := s.proj.CreateWizard(CreateProjectInput{
+	pid, folder, err := s.proj.CreateWizard(service.CreateProjectInput{
 		Name: body.Name, UnitID: body.UnitID, NewUnit: body.NewUnit,
 		Level: body.Level, Ptype: body.Ptype, Status: body.Status,
 	})

@@ -1,4 +1,4 @@
-package main
+package service
 
 // HTTP 层数据传输对象（DTO）：以强类型 struct 取代手拼 map / marshal→unmarshal 扁平化。
 

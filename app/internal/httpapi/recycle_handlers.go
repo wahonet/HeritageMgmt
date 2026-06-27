@@ -1,4 +1,4 @@
-package main
+package httpapi
 
 // HTTP 处理：删除/回收站生命周期（删工程/删单位/回收站列表/恢复/彻底删除）。均为 *Server 方法。
 

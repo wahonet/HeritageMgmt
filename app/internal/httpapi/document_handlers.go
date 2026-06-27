@@ -1,4 +1,4 @@
-package main
+package httpapi
 
 // HTTP 处理：文档相关（上传/下载预览/删除文档/删除分类）。均为 *Server 方法。
 

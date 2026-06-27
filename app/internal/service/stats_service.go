@@ -1,15 +1,14 @@
-package main
+package service
 
 // 业务编排：统计聚合服务。依赖 ProjectRepository/UnitRepository 接口，可注入 mock。
 
 import (
-	"net/http"
 	"sort"
 
 	"heritage-mgmt/internal/domain"
 )
 
-// StatsService 聚合工程统计（原 handleStats 的聚合逻辑）。
+// StatsService 聚合工程统计。
 type StatsService struct {
 	projects ProjectRepository
 	units    UnitRepository
@@ -101,9 +100,4 @@ func (svc *StatsService) Aggregate() map[string]interface{} {
 		"by_year":   ys,
 		"by_status": ss,
 	}
-}
-
-// handleStats GET /api/stats
-func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, s.stats.Aggregate())
 }

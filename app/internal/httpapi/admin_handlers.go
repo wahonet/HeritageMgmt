@@ -1,4 +1,4 @@
-package main
+package httpapi
 
 // HTTP 处理：配置/单位列表/重新导入/操作日志/OCR 识别。均为 *Server 方法。
 
