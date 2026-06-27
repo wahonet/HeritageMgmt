@@ -1,7 +1,10 @@
+// Command heritage 是文物保护工程管理系统的入口。
+// 职责仅限：解析 CLI → 组装依赖(config→store→services→server) → 启动。
+// 已无任何包级可变全局；分层依赖由编译器强制（domain←store←service←httpapi）。
+//
+// 构建：  go build -o heritage-mgmt.exe ./cmd/heritage
+// 交叉：  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o heritage-mgmt-linux-amd64 ./cmd/heritage
 package main
-
-// 入口（C2 过渡：仍在 package main；C3 迁至 cmd/heritage）：CLI、组装 App、启动服务。
-// CLI 直接调 service；HTTP 由 httpapi.Server 承载。
 
 import (
 	"fmt"
@@ -10,6 +13,9 @@ import (
 	"strconv"
 
 	"heritage-mgmt/internal/config"
+	"heritage-mgmt/internal/httpapi"
+	"heritage-mgmt/internal/llm"
+	"heritage-mgmt/internal/service"
 	"heritage-mgmt/internal/store"
 )
 
@@ -22,8 +28,8 @@ func main() {
 	if err != nil {
 		log.Fatal("打开数据库失败: ", err)
 	}
-	app := NewApp(cfg, st)
-	svc := app.Services()
+	client := llm.New(cfg.LLM)
+	svc := service.NewServices(cfg, st, client)
 
 	// 命令行: -ocr-all 批量OCR所有工程(已三类单位齐全的自动跳过)
 	force := len(os.Args) > 1 && os.Args[1] == "-ocr-force"
@@ -83,7 +89,8 @@ func main() {
 	}
 
 	// 启动 HTTP 服务
-	if err := app.Server().ListenAndServe("127.0.0.1:5000"); err != nil {
+	srv := httpapi.NewServer(cfg, st, svc, client)
+	if err := srv.ListenAndServe("127.0.0.1:5000"); err != nil {
 		log.Fatal(err)
 	}
 }
