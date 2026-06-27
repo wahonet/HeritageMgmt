@@ -11,9 +11,15 @@ import (
 )
 
 func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
+	// project_types：工程类型清单（供前端"添加项目"下拉，取代前端硬编码副本）
+	ptypes := make([]string, 0, len(s.cfg.WfCfg.ProjectTypes.Rules))
+	for _, ru := range s.cfg.WfCfg.ProjectTypes.Rules {
+		ptypes = append(ptypes, ru.Type)
+	}
 	writeJSON(w, map[string]interface{}{
-		"doc_types": s.cfg.DocCfg.Types,
-		"workflow":  s.cfg.WfCfg.Stages,
+		"doc_types":     s.cfg.DocCfg.Types,
+		"workflow":      s.cfg.WfCfg.Stages,
+		"project_types": ptypes,
 	})
 }
 
