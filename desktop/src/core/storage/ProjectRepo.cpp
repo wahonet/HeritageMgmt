@@ -54,4 +54,26 @@ int ProjectRepo::count() {
     return q.value(0).toInt();
 }
 
+QString ProjectRepo::name(qint64 id) {
+    QSqlQuery q(db_);
+    if (!q.prepare(QStringLiteral("SELECT name FROM projects WHERE id=?")))
+        return {};
+    q.addBindValue(id);
+    if (q.exec() && q.next())
+        return q.value(0).toString();
+    return {};
+}
+
+QSet<QString> ProjectRepo::docTypes(qint64 projectId) {
+    QSet<QString> out;
+    QSqlQuery q(db_);
+    if (!q.prepare(QStringLiteral("SELECT DISTINCT doc_type FROM documents WHERE project_id=?")))
+        return out;
+    q.addBindValue(projectId);
+    if (q.exec())
+        while (q.next())
+            out.insert(q.value(0).toString());
+    return out;
+}
+
 } // namespace heritage

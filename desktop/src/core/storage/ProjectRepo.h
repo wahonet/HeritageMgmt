@@ -7,6 +7,7 @@
 #include "core/domain/DomainTypes.h"
 #include "core/storage/ProjectScanner.h"
 
+#include <QSet>
 #include <QSqlDatabase>
 #include <QVector>
 #include <optional>
@@ -27,6 +28,12 @@ public:
 
     // 工程总数（含已软删，对齐 Go CountProjects）。
     int count();
+
+    // 工程名（按 id）。对应 Go ProjectName。
+    QString name(qint64 id);
+
+    // 某工程已有的文档类型集合。对应 Go ProjectDocTypes。
+    QSet<QString> docTypes(qint64 projectId);
 
 private:
     QSqlDatabase db_;

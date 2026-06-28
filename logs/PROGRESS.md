@@ -52,9 +52,24 @@
 
 ## 4. 当前状态与下一步
 
-- **已完成**：M1（地基 + 三端验证）；M2-core（业务逻辑层 + 单测）。
-- **进行中**：向「与原系统完全一致功能」推进——业务逻辑层已搬 classify/analysis/stats；接下来 excelimport/import/recycle 等逻辑 + 各 UI 视图（看板/工程详情/阶段面板/上传/预览/编辑/向导/导入/统计图表/日志/回收站/OCR/PDF报告/LLM）。
+- **已完成**：M1（地基 + 三端验证）；M2-core（业务逻辑层 + 单测）；M2-UI（工程详情分析 + 看板视图）。
+- **进行中**：向「与原系统完全一致功能」推进。下一步：上传+预览(M3)、编辑+新建向导+批量导入(M4，需搬 excelimport)、统计图表+日志+回收站(M5)、OCR+PDF+LLM(M6)。
 - **原则**：每推进一块就 `./docker/build.sh linux/amd64` 跑测试；按里程碑分提交。
+
+### M2-UI — 工程详情分析 + 看板视图（已完成）
+
+把 analysis/stats 接进 UI，Windows 端从"列表"前进一步：
+- `ui/widgets/ProjectDetailPanel`：基本信息 + 完整度进度条 + 必备缺项(红)/可选缺项(黄)/资质告警(黄) + 归档阶段流程(每阶段 已备/总数/文档数，颜色标识)。
+- `ui/views/DashboardView`：汇总卡片(工程数/齐全/有缺项/中央资金/已支付) + 工程缺项清单表。
+- `MainWindow` 重构：顶栏(看板/刷新) + 左树 + 右 `QStackedWidget`(详情/看板 切换)；选中工程→AnalysisService 填详情；点看板→DashboardService 填看板。
+- `core/dashboard/DashboardService`（搬 Go ProjectService.Dashboard）；补 `ProjectRepo::name/docTypes`。
+- amd64 编译过 + 5 单测全过；Windows 构建+运行通过（种子 2 单位/3 工程/8 文档，完整度/缺项/资质/看板均正常显示）。
+
+**本块踩坑**：
+- Go 原版 Dashboard 用 `ProjectName(unitID)` 取单位名（bug：按 projects.id 查，取到错名/空）→ C++ 改用 UnitRepo 取正确单位名（功能正确优先于复刻 bug）。
+- `std::unique_ptr<前向声明类型>` 成员：头文件内联析构触发 incomplete type → 析构声明放 .h、`= default` 放 .cpp。
+- range-for 对 initializer_list 用 `auto*` 推导失败 → 改 `const auto&`。
+- 强杀 exe 后残留 -shm/-wal（WAL 模式），外部 sqlite 打不开 → 种子前删空 -wal/-wal。
 
 ### M2-core — 业务逻辑层 classify / analysis / stats + 单测（已完成）
 

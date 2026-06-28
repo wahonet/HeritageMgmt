@@ -1,53 +1,60 @@
 #ifndef HERITAGE_UI_MAIN_WINDOW_H
 #define HERITAGE_UI_MAIN_WINDOW_H
 
-// 主窗口（M1 最小可用视图）：左侧 单位/工程 树，右侧 工程详情面板。
-// 数据来自 Database（与 web 版同一份 heritage.db）。后续里程碑扩展更多视图。
+// 主窗口：顶栏（看板/刷新）+ 左侧 单位/工程树 + 右侧 视图切换（工程详情 / 看板）。
+// 选中工程 → AnalysisService 填充详情面板；点"看板" → DashboardService 填充看板。
 
 #include "core/config/AppConfig.h"
 #include "core/domain/DomainTypes.h"
 #include "core/storage/Database.h"
 
-#include <QHash>
 #include <QMainWindow>
 #include <memory>
 
-class QLabel;
+class QStackedWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
+class QPushButton;
 
 namespace heritage {
+
+class ProjectRepo;
+class DocumentRepo;
+class UnitRepo;
+class ProjectDetailPanel;
+class DashboardView;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
     explicit MainWindow(const AppConfig& cfg, QWidget* parent = nullptr);
+    // 析构定义放 .cpp（此时 ProjectRepo/DocumentRepo/UnitRepo 已完整，
+    // 否则 unique_ptr 于头文件内联析构处触发 incomplete type 错误）
+    ~MainWindow();
 
 private slots:
-    void refresh();               // 从 DB 重载树
-    void onCurrentChanged();      // 选中项变化 → 刷新右侧详情
+    void refresh();
+    void onCurrentChanged();
+    void showDashboard();
 
 private:
     void buildUi();
-    void loadTree();              // 单位→工程 树
-    void showProject(const Project& p);
-    void showUnit(const Unit& u);
-    void clearDetail();
+    void loadTree();
+    void showProject(qint64 projectId);
 
     AppConfig cfg_;
     Database db_;
-    QHash<qint64, Project> projectsById_; // 树节点 → 工程详情查找
+    std::unique_ptr<ProjectRepo> projects_;
+    std::unique_ptr<DocumentRepo> docs_;
+    std::unique_ptr<UnitRepo> units_;
+    QHash<qint64, Project> projectsById_;
 
     QTreeWidget* tree_ = nullptr;
-    QLabel* detailTitle_ = nullptr;
-    QLabel* lblUnit_ = nullptr;
-    QLabel* lblName_ = nullptr;
-    QLabel* lblType_ = nullptr;
-    QLabel* lblStatus_ = nullptr;
-    QLabel* lblApproval_ = nullptr;
-    QLabel* lblDates_ = nullptr;
-    QLabel* lblFunding_ = nullptr;
+    QStackedWidget* stack_ = nullptr;
+    ProjectDetailPanel* detailPanel_ = nullptr;
+    DashboardView* dashboardView_ = nullptr;
+    QPushButton* btnDashboard_ = nullptr;
 };
 
 } // namespace heritage
