@@ -10,8 +10,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 # 优先 Qt6，缺失则回退 Qt5。
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Gui Widgets Sql REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Gui Widgets Sql REQUIRED)
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Gui Widgets Sql PrintSupport REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Gui Widgets Sql PrintSupport REQUIRED)
 
 # ---- 核心静态库（无 GUI，便于单测独立链接）----
 add_library(heritage_core STATIC
@@ -35,11 +35,13 @@ add_library(heritage_core STATIC
     src/core/excelimport/XlsxReader.cpp
     src/core/excelimport/ExcelImport.cpp
     src/core/import/ImportService.cpp
+    src/core/report/Report.cpp
 )
 target_include_directories(heritage_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(heritage_core PUBLIC
     Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Sql)
+    Qt${QT_VERSION_MAJOR}::Sql
+    Qt${QT_VERSION_MAJOR}::PrintSupport)
 
 # ---- 主程序（GUI + 入口）----
 add_executable(heritage-desktop

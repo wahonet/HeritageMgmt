@@ -60,6 +60,14 @@ target_compile_definitions(import_test PRIVATE
     HERITAGE_RESOURCE_DIR="${_res_dir}")
 add_test(NAME import_test COMMAND import_test)
 
+# 报告单测：生成 PDF 验证（QPdfWriter 需 GUI → QGuiApplication offscreen）
+add_executable(report_test ReportTest.cpp)
+target_link_libraries(report_test PRIVATE
+    heritage_core
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui)
+add_test(NAME report_test COMMAND report_test)
+
 # config_test 同时链接 qrc，以验证“磁盘读不到 → 回退 :/config 资源”。
 add_executable(config_test ConfigTest.cpp ../resources/heritage.qrc)
 target_link_libraries(config_test PRIVATE

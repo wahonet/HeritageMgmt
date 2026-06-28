@@ -55,6 +55,7 @@ private slots:
     void onRestoreRecycled(qint64 id);
     void onPurgeRecycled(qint64 id);
     void onImport();                  // 批量导入 Basicdata 目录
+    void onReport();                  // 生成当前工程 PDF 报告
 
 private:
     void buildUi();
@@ -88,6 +89,7 @@ private:
     QPushButton* btnAdd_ = nullptr;
     QPushButton* btnEdit_ = nullptr;
     QPushButton* btnImport_ = nullptr;
+    QPushButton* btnReport_ = nullptr;
 };
 
 } // namespace heritage

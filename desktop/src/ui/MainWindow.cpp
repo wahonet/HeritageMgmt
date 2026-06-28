@@ -6,6 +6,7 @@
 #include "core/recycle/RecycleService.h"
 #include "core/stats/StatsService.h"
 #include "core/import/ImportService.h"
+#include "core/report/Report.h"
 #include "core/storage/DocumentRepo.h"
 #include "core/storage/LogRepo.h"
 #include "core/storage/ProjectRepo.h"
@@ -97,6 +98,7 @@ void MainWindow::buildUi() {
     btnEdit_ = new QPushButton(QStringLiteral("✎ 编辑"), topBar);
     btnDelete_ = new QPushButton(QStringLiteral("✕ 删除"), topBar);
     btnImport_ = new QPushButton(QStringLiteral("📥 导入"), topBar);
+    btnReport_ = new QPushButton(QStringLiteral("📄 报告"), topBar);
     auto* btnRefresh = new QPushButton(QStringLiteral("刷新"), topBar);
     topLay->addWidget(title);
     topLay->addStretch(1);
@@ -109,6 +111,7 @@ void MainWindow::buildUi() {
     topLay->addWidget(btnUpload_);
     topLay->addWidget(btnDelete_);
     topLay->addWidget(btnImport_);
+    topLay->addWidget(btnReport_);
     topLay->addWidget(btnRefresh);
 
     // 左侧树
@@ -158,6 +161,7 @@ void MainWindow::buildUi() {
     connect(btnEdit_, &QPushButton::clicked, this, &MainWindow::onEditProject);
     connect(btnDelete_, &QPushButton::clicked, this, &MainWindow::onRecycleProject);
     connect(btnImport_, &QPushButton::clicked, this, &MainWindow::onImport);
+    connect(btnReport_, &QPushButton::clicked, this, &MainWindow::onReport);
     connect(tree_, &QTreeWidget::currentItemChanged, this, &MainWindow::onCurrentChanged);
     connect(recycleView_, &RecycleView::restoreRequested, this, &MainWindow::onRestoreRecycled);
     connect(recycleView_, &RecycleView::purgeRequested, this, &MainWindow::onPurgeRecycled);
@@ -429,6 +433,49 @@ void MainWindow::onImport() {
     }
     loadTree();
     detailPanel_->clear();
+}
+
+void MainWindow::onReport() {
+    if (currentPid_ <= 0) {
+        QMessageBox::information(this, QStringLiteral("报告"), QStringLiteral("请先在左侧选择一个工程。"));
+        return;
+    }
+    AnalysisService asvc(*projects_, *docs_, *units_, cfg_);
+    const auto d = asvc.analyze(currentPid_);
+    if (!d) {
+        QMessageBox::warning(this, QStringLiteral("报告"), QStringLiteral("无法生成分析。"));
+        return;
+    }
+    heritage::report::ReportData rd;
+    rd.project = d->project;
+    rd.project.unitName = units_->level(d->project.unitId); // 详情里用级别占位；报告取单位名另查
+    // 用工程所属单位名（从 units 列表里找）
+    for (const Unit& u : units_->list())
+        if (u.id == d->project.unitId) {
+            rd.project.unitName = u.name;
+            break;
+        }
+    rd.unitLevel = d->unitLevel;
+    rd.completeness = d->completeness;
+    rd.missingRequired = d->missingRequired;
+    rd.documents = d->documents;
+    rd.qualWarnings = d->qualWarnings;
+    rd.analysis = QString(); // LLM 分析在 M6-2 接入
+
+    const QString suggested = cfg_.dataDir + QStringLiteral("/") +
+                              (d->project.folder.isEmpty() ? QStringLiteral("report") : d->project.folder) +
+                              QStringLiteral("_报告.pdf");
+    const QString path = QFileDialog::getSaveFileName(this, QStringLiteral("保存报告"), suggested,
+        QStringLiteral("PDF (*.pdf)"));
+    if (path.isEmpty())
+        return;
+    QString err;
+    if (!heritage::report::generateReport(rd, path, &err)) {
+        QMessageBox::warning(this, QStringLiteral("报告"), err.isEmpty() ? QStringLiteral("生成失败") : err);
+        return;
+    }
+    logs_->insert(QStringLiteral("生成报告"), QStringLiteral("工程#%1").arg(currentPid_), path);
+    QDesktopServices::openUrl(QUrl::fromLocalFile(path));
 }
 
 } // namespace heritage

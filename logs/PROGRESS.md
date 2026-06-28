@@ -52,9 +52,20 @@
 
 ## 4. 当前状态与下一步
 
-- **已完成**：M1（地基+三端）；M2（业务逻辑+详情看板）；M3（上传+预览）；M4a（编辑+向导）；M5（统计+日志+回收站）；**M4b（批量导入：xlsx 读取 + ImportService + 导入 UI）**。
-- **进行中**：向「完全一致功能」推进。下一步：M6 OCR+PDF报告+LLM、M7 收尾。
+- **已完成**：M1（地基+三端）；M2（业务逻辑+详情看板）；M3（上传+预览）；M4a（编辑+向导）；M5（统计+日志+回收站）；M4b（批量导入）；**M6-1（PDF 报告）**。
+- **进行中**：M6-2 LLM + OCR（最后一块），之后 M7 收尾。
 - **原则**：每推进一块就 `./docker/build.sh linux/amd64` 跑测试；按里程碑分提交。
+
+### M6-1 — PDF 报告（已完成）
+
+- `core/report/Report`：搬 Go reporting/pdf.go —— ReportData / levelName / findChineseFont / generateReport。
+  - 用 **QPdfWriter + QTextDocument(HTML)** 替代 gopdf；中文字体随程序(fonts/)或系统常见路径（缺字体不阻断，用默认/系统字体）。
+  - 报告分四节：封面/工程基本信息/资金执行/档案完整度/智能分析文本（分析文本 M6-2 接入 LLM 后填充）。
+- CMake 增 `PrintSupport` 组件（QPdfWriter 所在）。
+- `MainWindow`：顶栏「📄 报告」→ 取当前工程 AnalysisService 结果填 ReportData → getSaveFileName → generateReport → `QDesktopServices` 打开 PDF + 日志。
+- `report_test`：构造 ReportData 生成 PDF，验 size>500 + `%PDF` 头 + LevelName。需 GUI → QGuiApplication(offscreen)。**9 单测 amd64 全过**。
+
+**待验证/依赖**：报告里 CJK 实际渲染依赖运行机有中文字体（开发机/Linux 容器若无 CJK 字体，PDF 仍生成但中文可能为豆腐/空白）；部署机（Windows/麒麟）通常有。
 
 ### M4b-2 — 批量导入编排 + 导入 UI（已完成）
 
