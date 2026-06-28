@@ -3,6 +3,9 @@
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QFileDialog>
+#include <QFormLayout>
+#include <QGroupBox>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QListWidget>
 #include <QPushButton>
@@ -14,29 +17,44 @@ UploadDialog::UploadDialog(const QVector<DocType>& types, qint64 projectId, cons
                            QWidget* parent)
     : QDialog(parent) {
     setWindowTitle(QStringLiteral("上传文档"));
+    resize(560, 520);
     auto* lay = new QVBoxLayout(this);
+    lay->setContentsMargins(18, 18, 18, 18);
+    lay->setSpacing(12);
 
-    auto* lblProj = new QLabel(QStringLiteral("工程：%1（#%2）").arg(projectName).arg(projectId), this);
+    auto* lblProj = new QLabel(QStringLiteral("上传至工程：%1（#%2）").arg(projectName).arg(projectId), this);
+    lblProj->setObjectName(QStringLiteral("DialogHeader"));
+    lblProj->setWordWrap(true);
     lay->addWidget(lblProj);
 
-    auto* typeRow = new QVBoxLayout;
-    typeRow->addWidget(new QLabel(QStringLiteral("文档分类"), this));
-    typeCombo_ = new QComboBox(this);
+    // 分类
+    auto* typeBox = new QGroupBox(QStringLiteral("文档分类"), this);
+    auto* typeForm = new QFormLayout(typeBox);
+    typeCombo_ = new QComboBox(typeBox);
     for (const DocType& t : types)
         typeCombo_->addItem(QStringLiteral("%1（%2）").arg(t.name, t.code), t.code);
-    typeRow->addWidget(typeCombo_);
-    lay->addLayout(typeRow);
+    typeForm->addRow(QStringLiteral("分类"), typeCombo_);
+    lay->addWidget(typeBox);
 
-    auto* btnAdd = new QPushButton(QStringLiteral("＋ 选择文件…"), this);
-    auto* btnClear = new QPushButton(QStringLiteral("清空"), this);
-    fileList_ = new QListWidget(this);
-    fileList_->setMinimumHeight(140);
-    lay->addWidget(btnAdd);
-    lay->addWidget(btnClear);
-    lay->addWidget(new QLabel(QStringLiteral("待上传文件："), this));
-    lay->addWidget(fileList_, 1);
+    // 文件
+    auto* fileBox = new QGroupBox(QStringLiteral("待上传文件"), this);
+    auto* fileLay = new QVBoxLayout(fileBox);
+    auto* btnRow = new QHBoxLayout();
+    auto* btnAdd = new QPushButton(QStringLiteral("＋ 选择文件…"), fileBox);
+    auto* btnClear = new QPushButton(QStringLiteral("清空"), fileBox);
+    btnClear->setObjectName(QStringLiteral("btnGhost"));
+    btnRow->addWidget(btnAdd);
+    btnRow->addWidget(btnClear);
+    btnRow->addStretch(1);
+    fileLay->addLayout(btnRow);
+    fileList_ = new QListWidget(fileBox);
+    fileList_->setMinimumHeight(180);
+    fileLay->addWidget(fileList_, 1);
+    lay->addWidget(fileBox, 1);
 
     auto* bb = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
+    bb->button(QDialogButtonBox::Ok)->setText(QStringLiteral("上传"));
+    bb->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("取消"));
     lay->addWidget(bb);
 
     connect(btnAdd, &QPushButton::clicked, this, &UploadDialog::addFiles);

@@ -20,10 +20,14 @@ DashboardView::DashboardView(QWidget* parent) : QWidget(parent) {
 
 void DashboardView::buildUi() {
     auto* outer = new QVBoxLayout(this);
+    outer->setContentsMargins(14, 14, 14, 14);
+    outer->setSpacing(14);
 
     // 卡片行
     auto* cardsHost = new QWidget(this);
     auto* cardsLay = new QHBoxLayout(cardsHost);
+    cardsLay->setContentsMargins(0, 0, 0, 0);
+    cardsLay->setSpacing(12);
     // 用 GroupBox 包数值：makeCard 返回内部 label，这里另持有
     auto* bTotal = new QGroupBox(QStringLiteral("工程总数"), cardsHost);
     lblTotal_ = new QLabel(QStringLiteral("—"), bTotal);
@@ -40,17 +44,21 @@ void DashboardView::buildUi() {
                              QPair<QGroupBox*, QLabel*>{bMiss, lblMiss_},
                              QPair<QGroupBox*, QLabel*>{bFund, lblFund_},
                              QPair<QGroupBox*, QLabel*>{bPaid, lblPaid_}}) {
+        QGroupBox* card = pair.first;
         QLabel* l = pair.second;
+        card->setObjectName(QStringLiteral("StatCard"));   // 供 qss 卡片化
+        card->setAlignment(Qt::AlignHCenter);
         l->setAlignment(Qt::AlignCenter);
         QFont f = l->font();
-        f.setPointSize(f.pointSize() + 6);
+        f.setPointSize(f.pointSize() + 10);
         f.setBold(true);
         l->setFont(f);
-        auto* lay = new QVBoxLayout(pair.first);
+        auto* lay = new QVBoxLayout(card);
+        lay->setContentsMargins(6, 8, 6, 10);
         lay->addWidget(l);
-        cardsLay->addWidget(pair.first);
+        cardsLay->addWidget(card);
     }
-    lblDone_->setStyleSheet(QStringLiteral("color: #27ae60;"));
+    lblDone_->setStyleSheet(QStringLiteral("color: #2f8f53;"));
     lblMiss_->setStyleSheet(QStringLiteral("color: #c0392b;"));
     outer->addWidget(cardsHost);
 

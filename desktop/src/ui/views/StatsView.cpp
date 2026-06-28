@@ -13,8 +13,11 @@ namespace heritage {
 
 StatsView::StatsView(QWidget* parent) : QWidget(parent) {
     auto* outer = new QVBoxLayout(this);
+    outer->setContentsMargins(14, 14, 14, 14);
+    outer->setSpacing(14);
 
     lblTotal_ = new QLabel(this);
+    lblTotal_->setObjectName(QStringLiteral("StatsSummary"));
     QFont f = lblTotal_->font();
     f.setPointSize(f.pointSize() + 2);
     f.setBold(true);
@@ -22,7 +25,7 @@ StatsView::StatsView(QWidget* parent) : QWidget(parent) {
     outer->addWidget(lblTotal_);
 
     auto* grid = new QGridLayout();
-    grid->setSpacing(8);
+    grid->setSpacing(14);
     auto mkBox = [&](const QString& title, QWidget* inner) {
         auto* b = new QGroupBox(title, this);
         auto* l = new QVBoxLayout(b);

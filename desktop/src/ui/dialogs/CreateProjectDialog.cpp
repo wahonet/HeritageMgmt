@@ -14,10 +14,19 @@ CreateProjectDialog::CreateProjectDialog(const QVector<Unit>& units, const QStri
                                          QWidget* parent)
     : QDialog(parent), units_(units) {
     setWindowTitle(QStringLiteral("新建工程"));
+    resize(520, 0);
     auto* outer = new QVBoxLayout(this);
+    outer->setContentsMargins(18, 18, 18, 18);
+    outer->setSpacing(12);
+
+    auto* header = new QLabel(QStringLiteral("新建工程"), this);
+    header->setObjectName(QStringLiteral("DialogHeader"));
+    outer->addWidget(header);
 
     auto* formBox = new QGroupBox(QStringLiteral("工程信息"), this);
     auto* form = new QFormLayout(formBox);
+    form->setSpacing(10);
+    form->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
     nameEdit_ = new QLineEdit(this);
     nameEdit_->setPlaceholderText(QStringLiteral("必填"));
     form->addRow(QStringLiteral("工程名称 *"), nameEdit_);

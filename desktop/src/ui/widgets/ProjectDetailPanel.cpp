@@ -30,15 +30,18 @@ ProjectDetailPanel::ProjectDetailPanel(QWidget* parent) : QWidget(parent) {
 
 void ProjectDetailPanel::buildUi() {
     auto* outer = new QVBoxLayout(this);
+    outer->setContentsMargins(0, 0, 0, 0);
 
     // 滚动区包内容（字段多时可用）
     auto* scroll = new QScrollArea(this);
     scroll->setWidgetResizable(true);
     auto* host = new QWidget(scroll);
     auto* lay = new QVBoxLayout(host);
-    lay->setContentsMargins(8, 8, 8, 8);
+    lay->setContentsMargins(16, 16, 16, 16);
+    lay->setSpacing(12);
 
     title_ = new QLabel(QStringLiteral("选择左侧工程查看详情"), host);
+    title_->setObjectName(QStringLiteral("DetailTitle"));
     QFont tf = title_->font();
     tf.setPointSize(tf.pointSize() + 4);
     tf.setBold(true);
@@ -46,9 +49,17 @@ void ProjectDetailPanel::buildUi() {
     title_->setWordWrap(true);
     lay->addWidget(title_);
 
-    // 基本信息
+    // 基本信息（双列）
     auto* boxBasic = new QGroupBox(QStringLiteral("基本信息"), host);
-    auto* form = new QFormLayout(boxBasic);
+    auto* basicRow = new QHBoxLayout(boxBasic);
+    basicRow->setSpacing(24);
+    auto* formL = new QFormLayout();
+    auto* formR = new QFormLayout();
+    for (auto* f : {formL, formR}) {
+        f->setSpacing(10);
+        f->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        f->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    }
     lblUnit_ = new QLabel(boxBasic);
     lblType_ = new QLabel(boxBasic);
     lblStatus_ = new QLabel(boxBasic);
@@ -57,12 +68,14 @@ void ProjectDetailPanel::buildUi() {
     lblFunding_ = new QLabel(boxBasic);
     for (auto* l : {lblUnit_, lblType_, lblStatus_, lblApproval_, lblDates_, lblFunding_})
         l->setWordWrap(true);
-    form->addRow(QStringLiteral("所属单位"), lblUnit_);
-    form->addRow(QStringLiteral("工程类型"), lblType_);
-    form->addRow(QStringLiteral("工程状态"), lblStatus_);
-    form->addRow(QStringLiteral("批复文号"), lblApproval_);
-    form->addRow(QStringLiteral("关键日期"), lblDates_);
-    form->addRow(QStringLiteral("中央资金(万元)"), lblFunding_);
+    formL->addRow(QStringLiteral("所属单位"), lblUnit_);
+    formL->addRow(QStringLiteral("工程状态"), lblStatus_);
+    formL->addRow(QStringLiteral("中央资金(万元)"), lblFunding_);
+    formR->addRow(QStringLiteral("工程类型"), lblType_);
+    formR->addRow(QStringLiteral("批复文号"), lblApproval_);
+    formR->addRow(QStringLiteral("关键日期"), lblDates_);
+    basicRow->addLayout(formL, 1);
+    basicRow->addLayout(formR, 1);
     lay->addWidget(boxBasic);
 
     // 完整度
@@ -162,6 +175,15 @@ void ProjectDetailPanel::showDetail(const ProjectDetail& d) {
     lblFunding_->setText(money(p.centralFunding));
 
     completeness_->setValue(d.completeness);
+    // 完整度按区间变色：达标(绿) / 偏低(赭) / 告警(朱砂)
+    const QString chunkColor = d.completeness >= 100 ? QStringLiteral("#2f8f53")
+                               : d.completeness >= 60 ? QStringLiteral("#a8623a")
+                                                      : QStringLiteral("#b23b3b");
+    completeness_->setStyleSheet(
+        QStringLiteral("QProgressBar{border:1px solid #e3dccf;border-radius:9px;background:#f0e9dc;"
+                       "text-align:center;color:#4a3a28;height:18px;font-weight:bold;}"
+                       "QProgressBar::chunk{border-radius:8px;background:%1;}")
+            .arg(chunkColor));
     lblCompleteness_->setText(QStringLiteral("必备档案齐全度 %1%").arg(d.completeness));
 
     setTextOrHide(lblMissing_, QStringLiteral("缺必备："), d.missingRequired);

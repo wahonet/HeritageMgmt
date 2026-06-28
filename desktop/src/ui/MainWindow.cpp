@@ -23,6 +23,8 @@
 #include "ui/views/LogsView.h"
 #include "ui/views/RecycleView.h"
 
+#include <QBrush>
+#include <QColor>
 #include <QDesktopServices>
 #include <QDir>
 #include <QFileDialog>
@@ -30,9 +32,15 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QFont>
+#include <QIcon>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMessageBox>
+#include <QPainter>
+#include <QPainterPath>
+#include <QPixmap>
 #include <QPushButton>
+#include <QSize>
 #include <QSplitter>
 #include <QStackedWidget>
 #include <QStatusBar>
@@ -42,6 +50,7 @@
 #include <QVariantList>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QtMath>
 
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -55,6 +64,121 @@
 #include <QTreeWidgetItem>
 #include <QVBoxLayout>
 #include <QWidget>
+
+namespace {
+
+// 自绘线性图标：在 18×18 逻辑区域用 QPainter 画单色线条，避免引入 QtSvg/图片资源。
+// 坐标系工作区约定为 2..16，线宽 1.6，圆头圆角。color 取顶栏浅色。
+QIcon glyphIcon(const QString& name, const QColor& color) {
+    const int S = 18;
+    const qreal dpr = 2.0;
+    QPixmap pm(static_cast<int>(S * dpr), static_cast<int>(S * dpr));
+    pm.setDevicePixelRatio(dpr);
+    pm.fill(Qt::transparent);
+
+    QPainter p(&pm);
+    p.setRenderHint(QPainter::Antialiasing, true);
+    QPen pen(color);
+    pen.setWidthF(1.6);
+    pen.setCapStyle(Qt::RoundCap);
+    pen.setJoinStyle(Qt::RoundJoin);
+    p.setPen(pen);
+    p.setBrush(Qt::NoBrush);
+
+    if (name == QLatin1String("dashboard")) {
+        const qreal w = 5.2;
+        p.drawRoundedRect(QRectF(3, 3, w, w), 1.2, 1.2);
+        p.drawRoundedRect(QRectF(9.8, 3, w, w), 1.2, 1.2);
+        p.drawRoundedRect(QRectF(3, 9.8, w, w), 1.2, 1.2);
+        p.drawRoundedRect(QRectF(9.8, 9.8, w, w), 1.2, 1.2);
+    } else if (name == QLatin1String("stats")) {
+        QPen bar = pen;
+        bar.setWidthF(2.4);
+        p.setPen(bar);
+        p.drawLine(QPointF(5, 15), QPointF(5, 10));
+        p.drawLine(QPointF(9, 15), QPointF(9, 6));
+        p.drawLine(QPointF(13, 15), QPointF(13, 8));
+        p.setPen(pen);
+        p.drawLine(QPointF(3, 15.4), QPointF(15, 15.4));
+    } else if (name == QLatin1String("logs")) {
+        for (qreal y : {5.0, 9.0, 13.0}) {
+            p.setBrush(color);
+            p.setPen(Qt::NoPen);
+            p.drawEllipse(QPointF(4, y), 0.9, 0.9);
+            p.setPen(pen);
+            p.drawLine(QPointF(7, y), QPointF(15, y));
+        }
+    } else if (name == QLatin1String("recycle")) {
+        p.drawLine(QPointF(3.5, 5), QPointF(14.5, 5));   // 盖
+        p.drawLine(QPointF(7, 5), QPointF(7.6, 3.4));    // 提手
+        p.drawLine(QPointF(11, 5), QPointF(10.4, 3.4));
+        p.drawLine(QPointF(7.6, 3.4), QPointF(10.4, 3.4));
+        QPainterPath body;                                // 桶身
+        body.moveTo(5, 5.6);
+        body.lineTo(6, 15);
+        body.lineTo(12, 15);
+        body.lineTo(13, 5.6);
+        p.drawPath(body);
+        p.drawLine(QPointF(7.6, 7.5), QPointF(7.9, 13));  // 竖纹
+        p.drawLine(QPointF(10.4, 7.5), QPointF(10.1, 13));
+    } else if (name == QLatin1String("add")) {
+        p.drawLine(QPointF(9, 4), QPointF(9, 14));
+        p.drawLine(QPointF(4, 9), QPointF(14, 9));
+    } else if (name == QLatin1String("edit")) {
+        p.save();
+        p.translate(9, 9);
+        p.rotate(45);
+        p.drawRoundedRect(QRectF(-1.7, -7, 3.4, 10), 1.0, 1.0);
+        p.drawLine(QPointF(-1.7, 3), QPointF(0, 6));      // 笔尖
+        p.drawLine(QPointF(1.7, 3), QPointF(0, 6));
+        p.drawLine(QPointF(-1.7, -4), QPointF(1.7, -4));  // 笔帽分隔
+        p.restore();
+    } else if (name == QLatin1String("upload")) {
+        p.drawLine(QPointF(9, 3.5), QPointF(9, 11));
+        p.drawLine(QPointF(9, 3.5), QPointF(6, 6.5));
+        p.drawLine(QPointF(9, 3.5), QPointF(12, 6.5));
+        p.drawLine(QPointF(4, 14), QPointF(14, 14));
+        p.drawLine(QPointF(4, 14), QPointF(4, 12));
+        p.drawLine(QPointF(14, 14), QPointF(14, 12));
+    } else if (name == QLatin1String("delete")) {
+        p.drawLine(QPointF(5, 5), QPointF(13, 13));
+        p.drawLine(QPointF(13, 5), QPointF(5, 13));
+    } else if (name == QLatin1String("import")) {
+        p.drawLine(QPointF(9, 3), QPointF(9, 10.5));
+        p.drawLine(QPointF(9, 10.5), QPointF(6, 7.5));
+        p.drawLine(QPointF(9, 10.5), QPointF(12, 7.5));
+        p.drawLine(QPointF(4, 14), QPointF(14, 14));
+        p.drawLine(QPointF(4, 14), QPointF(4, 12));
+        p.drawLine(QPointF(14, 14), QPointF(14, 12));
+    } else if (name == QLatin1String("report")) {
+        QPainterPath doc;
+        doc.moveTo(4.5, 2.5);
+        doc.lineTo(11, 2.5);
+        doc.lineTo(14.5, 6);
+        doc.lineTo(14.5, 15.5);
+        doc.lineTo(4.5, 15.5);
+        doc.closeSubpath();
+        p.drawPath(doc);
+        p.drawLine(QPointF(11, 2.5), QPointF(11, 6));     // 折角
+        p.drawLine(QPointF(11, 6), QPointF(14.5, 6));
+        p.drawLine(QPointF(6.5, 9.5), QPointF(12.5, 9.5));
+        p.drawLine(QPointF(6.5, 12.5), QPointF(12.5, 12.5));
+    } else if (name == QLatin1String("ocr")) {
+        p.drawEllipse(QPointF(8, 8), 4.2, 4.2);
+        p.drawLine(QPointF(11, 11), QPointF(15, 15));
+    } else if (name == QLatin1String("refresh")) {
+        p.drawArc(QRectF(4, 4, 10, 10), 40 * 16, 280 * 16);
+        const qreal cx = 9, cy = 9, r = 5;
+        const qreal a = qDegreesToRadians(40.0);
+        const QPointF tip(cx + r * qCos(a), cy - r * qSin(a));
+        p.drawLine(tip, tip + QPointF(-1.8, -1.4));
+        p.drawLine(tip, tip + QPointF(0.8, -2.2));
+    }
+    p.end();
+    return QIcon(pm);
+}
+
+} // namespace
 
 namespace heritage {
 
@@ -89,34 +213,79 @@ MainWindow::~MainWindow() = default;
 void MainWindow::buildUi() {
     // 顶栏
     auto* topBar = new QWidget(this);
+    topBar->setObjectName(QStringLiteral("TopBar"));
     auto* topLay = new QHBoxLayout(topBar);
-    topLay->setContentsMargins(8, 4, 8, 4);
+    topLay->setContentsMargins(16, 8, 16, 8);
+    topLay->setSpacing(6);
     auto* title = new QLabel(QStringLiteral("文物保护工程管理系统"), topBar);
+    title->setObjectName(QStringLiteral("AppTitle"));
     QFont tf = title->font();
     tf.setBold(true);
     title->setFont(tf);
-    btnDashboard_ = new QPushButton(QStringLiteral("📊 看板"), topBar);
-    btnStats_ = new QPushButton(QStringLiteral("📈 统计"), topBar);
-    btnLogs_ = new QPushButton(QStringLiteral("📜 日志"), topBar);
-    btnRecycle_ = new QPushButton(QStringLiteral("🗑 回收站"), topBar);
-    btnUpload_ = new QPushButton(QStringLiteral("⬆ 上传"), topBar);
-    btnAdd_ = new QPushButton(QStringLiteral("➕ 新建"), topBar);
-    btnEdit_ = new QPushButton(QStringLiteral("✎ 编辑"), topBar);
-    btnDelete_ = new QPushButton(QStringLiteral("✕ 删除"), topBar);
-    btnImport_ = new QPushButton(QStringLiteral("📥 导入"), topBar);
-    btnReport_ = new QPushButton(QStringLiteral("📄 报告"), topBar);
-    btnOcr_ = new QPushButton(QStringLiteral("🔍 OCR"), topBar);
-    auto* btnRefresh = new QPushButton(QStringLiteral("刷新"), topBar);
+    btnDashboard_ = new QPushButton(QStringLiteral(" 看板"), topBar);
+    btnStats_ = new QPushButton(QStringLiteral(" 统计"), topBar);
+    btnLogs_ = new QPushButton(QStringLiteral(" 日志"), topBar);
+    btnRecycle_ = new QPushButton(QStringLiteral(" 回收站"), topBar);
+    btnUpload_ = new QPushButton(QStringLiteral(" 上传"), topBar);
+    btnAdd_ = new QPushButton(QStringLiteral(" 新建"), topBar);
+    btnEdit_ = new QPushButton(QStringLiteral(" 编辑"), topBar);
+    btnDelete_ = new QPushButton(QStringLiteral(" 删除"), topBar);
+    btnImport_ = new QPushButton(QStringLiteral(" 导入"), topBar);
+    btnReport_ = new QPushButton(QStringLiteral(" 报告"), topBar);
+    btnOcr_ = new QPushButton(QStringLiteral(" OCR"), topBar);
+    auto* btnRefresh = new QPushButton(QStringLiteral(" 刷新"), topBar);
+    // 对象名供 qss 主次/危险分区使用
+    btnDashboard_->setObjectName(QStringLiteral("btnDashboard"));
+    btnStats_->setObjectName(QStringLiteral("btnStats"));
+    btnLogs_->setObjectName(QStringLiteral("btnLogs"));
+    btnRecycle_->setObjectName(QStringLiteral("btnRecycle"));
+    btnUpload_->setObjectName(QStringLiteral("btnUpload"));
+    btnAdd_->setObjectName(QStringLiteral("btnAdd"));
+    btnEdit_->setObjectName(QStringLiteral("btnEdit"));
+    btnDelete_->setObjectName(QStringLiteral("btnDelete"));
+    btnImport_->setObjectName(QStringLiteral("btnImport"));
+    btnReport_->setObjectName(QStringLiteral("btnReport"));
+    btnOcr_->setObjectName(QStringLiteral("btnOcr"));
+    btnRefresh->setObjectName(QStringLiteral("btnRefresh"));
+
+    // 自绘线性图标（顶栏浅色），替换原 emoji
+    const QColor icoLight(0xf4, 0xec, 0xe0);
+    const QColor icoWhite(0xff, 0xff, 0xff);
+    const QSize icoSize(16, 16);
+    struct IcoBind { QPushButton* btn; const char* name; };
+    const IcoBind binds[] = {
+        {btnDashboard_, "dashboard"}, {btnStats_, "stats"}, {btnLogs_, "logs"},
+        {btnRecycle_, "recycle"}, {btnAdd_, "add"}, {btnEdit_, "edit"},
+        {btnUpload_, "upload"}, {btnDelete_, "delete"}, {btnImport_, "import"},
+        {btnReport_, "report"}, {btnOcr_, "ocr"}, {btnRefresh, "refresh"},
+    };
+    for (const IcoBind& b : binds) {
+        // 新建按钮底色为赭石，用纯白图标更清晰
+        const QColor c = (b.btn == btnAdd_) ? icoWhite : icoLight;
+        b.btn->setIcon(glyphIcon(QString::fromLatin1(b.name), c));
+        b.btn->setIconSize(icoSize);
+        b.btn->setCursor(Qt::PointingHandCursor);
+    }
+
+    // 顶栏分两组：左=导航视图，右=工程操作，中间用细分隔提示主次
+    auto* makeSep = [topBar]() {
+        auto* sep = new QLabel(topBar);
+        sep->setFixedWidth(1);
+        sep->setStyleSheet(QStringLiteral("background: rgba(255,255,255,0.18); margin: 4px 6px;"));
+        return sep;
+    };
     topLay->addWidget(title);
     topLay->addStretch(1);
     topLay->addWidget(btnDashboard_);
     topLay->addWidget(btnStats_);
     topLay->addWidget(btnLogs_);
     topLay->addWidget(btnRecycle_);
+    topLay->addWidget(makeSep());
     topLay->addWidget(btnAdd_);
     topLay->addWidget(btnEdit_);
     topLay->addWidget(btnUpload_);
     topLay->addWidget(btnDelete_);
+    topLay->addWidget(makeSep());
     topLay->addWidget(btnImport_);
     topLay->addWidget(btnReport_);
     topLay->addWidget(btnOcr_);
@@ -125,11 +294,23 @@ void MainWindow::buildUi() {
     // 左侧树
     auto* leftHost = new QWidget(this);
     auto* leftLay = new QVBoxLayout(leftHost);
-    leftLay->setContentsMargins(6, 4, 6, 6);
+    leftLay->setContentsMargins(10, 10, 6, 10);
+    leftLay->setSpacing(8);
+    search_ = new QLineEdit(leftHost);
+    search_->setObjectName(QStringLiteral("NavSearch"));
+    search_->setPlaceholderText(QStringLiteral("搜索单位 / 工程…"));
+    search_->setClearButtonEnabled(true);
+    search_->addAction(glyphIcon(QStringLiteral("ocr"), QColor(0x8a, 0x7c, 0x66)),
+                       QLineEdit::LeadingPosition);
+    leftLay->addWidget(search_);
     tree_ = new QTreeWidget(leftHost);
+    tree_->setObjectName(QStringLiteral("NavTree"));
     tree_->setHeaderLabel(QStringLiteral("单位 / 工程"));
     tree_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     leftLay->addWidget(tree_, 1);
+    treeCount_ = new QLabel(leftHost);
+    treeCount_->setObjectName(QStringLiteral("NavCount"));
+    leftLay->addWidget(treeCount_);
 
     // 右侧视图栈：详情(0) / 看板(1) / 统计(2) / 日志(3) / 回收站(4)
     stack_ = new QStackedWidget(this);
@@ -172,6 +353,7 @@ void MainWindow::buildUi() {
     connect(btnReport_, &QPushButton::clicked, this, &MainWindow::onReport);
     connect(btnOcr_, &QPushButton::clicked, this, &MainWindow::onOcr);
     connect(tree_, &QTreeWidget::currentItemChanged, this, &MainWindow::onCurrentChanged);
+    connect(search_, &QLineEdit::textChanged, this, &MainWindow::filterTree);
     connect(recycleView_, &RecycleView::restoreRequested, this, &MainWindow::onRestoreRecycled);
     connect(recycleView_, &RecycleView::purgeRequested, this, &MainWindow::onPurgeRecycled);
     connect(detailPanel_, &ProjectDetailPanel::uploadRequested, this, &MainWindow::onUpload);
@@ -186,24 +368,58 @@ void MainWindow::loadTree() {
     const QVector<Unit> unitList = units_->list();
     int projTotal = 0;
     for (const Unit& u : unitList) {
-        auto* uItem = new QTreeWidgetItem(tree_, {u.name.isEmpty() ? QStringLiteral("(未命名单位)") : u.name});
+        const QString uName = u.name.isEmpty() ? QStringLiteral("(未命名单位)") : u.name;
+        auto* uItem = new QTreeWidgetItem(tree_);
         uItem->setData(0, kRoleKind, QStringLiteral("unit"));
         uItem->setData(0, kRoleUnitId, u.id);
         QFont f = uItem->font(0);
         f.setBold(true);
         uItem->setFont(0, f);
 
+        int unitCount = 0;
         for (const Project& p : projects_->list(u.id, QString(), QString())) {
             auto* pItem = new QTreeWidgetItem(uItem, {p.name});
             pItem->setData(0, kRoleKind, QStringLiteral("project"));
             pItem->setData(0, kRoleProjectId, p.id);
             projectsById_.insert(p.id, p);
             ++projTotal;
+            ++unitCount;
         }
+        // 单位名后附工程数量徽标
+        uItem->setText(0, QStringLiteral("%1　(%2)").arg(uName).arg(unitCount));
+        uItem->setForeground(0, QBrush(QColor(QStringLiteral("#543723"))));
         tree_->expandItem(uItem);
     }
+    if (treeCount_)
+        treeCount_->setText(QStringLiteral("共 %1 个单位 ／ %2 个工程")
+                                .arg(unitList.size()).arg(projTotal));
     statusBar()->showMessage(
         QStringLiteral("共 %1 个单位 / %2 个工程").arg(unitList.size()).arg(projTotal), 0);
+    if (search_ && !search_->text().trimmed().isEmpty())
+        filterTree(search_->text());
+}
+
+void MainWindow::filterTree(const QString& text) {
+    const QString kw = text.trimmed();
+    const int unitCount = tree_->topLevelItemCount();
+    for (int i = 0; i < unitCount; ++i) {
+        QTreeWidgetItem* uItem = tree_->topLevelItem(i);
+        const bool unitMatch = kw.isEmpty() ||
+                               uItem->text(0).contains(kw, Qt::CaseInsensitive);
+        int visibleChildren = 0;
+        for (int j = 0; j < uItem->childCount(); ++j) {
+            QTreeWidgetItem* pItem = uItem->child(j);
+            const bool hit = kw.isEmpty() || unitMatch ||
+                             pItem->text(0).contains(kw, Qt::CaseInsensitive);
+            pItem->setHidden(!hit);
+            if (hit)
+                ++visibleChildren;
+        }
+        // 单位：自身匹配或有可见子项才显示
+        uItem->setHidden(!(unitMatch || visibleChildren > 0));
+        if (!kw.isEmpty() && (unitMatch || visibleChildren > 0))
+            uItem->setExpanded(true);
+    }
 }
 
 void MainWindow::refresh() {

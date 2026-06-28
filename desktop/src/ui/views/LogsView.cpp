@@ -10,6 +10,7 @@ namespace heritage {
 
 LogsView::LogsView(QWidget* parent) : QWidget(parent) {
     auto* lay = new QVBoxLayout(this);
+    lay->setContentsMargins(14, 14, 14, 14);
     auto* box = new QGroupBox(QStringLiteral("操作日志"), this);
     auto* boxLay = new QVBoxLayout(box);
     table_ = new QTableWidget(box);

@@ -13,12 +13,14 @@ namespace heritage {
 
 RecycleView::RecycleView(QWidget* parent) : QWidget(parent) {
     auto* lay = new QVBoxLayout(this);
+    lay->setContentsMargins(14, 14, 14, 14);
     auto* box = new QGroupBox(QStringLiteral("回收站（已删除工程）"), this);
     auto* boxLay = new QVBoxLayout(box);
 
     auto* btnRow = new QHBoxLayout();
     auto* btnRestore = new QPushButton(QStringLiteral("↩ 恢复选中"), box);
     auto* btnPurge = new QPushButton(QStringLiteral("✕ 彻底删除"), box);
+    btnPurge->setObjectName(QStringLiteral("btnDanger"));
     btnRow->addWidget(btnRestore);
     btnRow->addWidget(btnPurge);
     btnRow->addStretch(1);

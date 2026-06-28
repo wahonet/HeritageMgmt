@@ -3,6 +3,7 @@
 #include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QGroupBox>
+#include <QLabel>
 #include <QLineEdit>
 #include <QScrollArea>
 #include <QVBoxLayout>
@@ -37,15 +38,28 @@ ProjectEditDialog::ProjectEditDialog(const Project& p, QWidget* parent) : QDialo
     money_.insert(QStringLiteral("total_paid"));
 
     auto* outer = new QVBoxLayout(this);
+    outer->setContentsMargins(18, 18, 18, 18);
+    outer->setSpacing(12);
+
+    auto* header = new QLabel(QStringLiteral("编辑工程：%1").arg(p.name), this);
+    header->setObjectName(QStringLiteral("DialogHeader"));
+    header->setWordWrap(true);
+    outer->addWidget(header);
+
     auto* scroll = new QScrollArea(this);
     scroll->setWidgetResizable(true);
     auto* host = new QWidget(scroll);
     auto* lay = new QVBoxLayout(host);
+    lay->setContentsMargins(2, 2, 2, 2);
+    lay->setSpacing(12);
 
     auto mk = [&](const QString& t) {
         auto* b = new QGroupBox(t, host);
         lay->addWidget(b);
-        return new QFormLayout(b);
+        auto* fl = new QFormLayout(b);
+        fl->setSpacing(10);
+        fl->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        return fl;
     };
 
     // 基本信息

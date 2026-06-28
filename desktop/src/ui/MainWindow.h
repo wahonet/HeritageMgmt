@@ -15,6 +15,8 @@ class QStackedWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
 class QPushButton;
+class QLineEdit;
+class QLabel;
 
 namespace heritage {
 
@@ -59,6 +61,7 @@ private slots:
     void onImport();                  // 批量导入 Basicdata 目录
     void onReport();                  // 生成当前工程 PDF 报告
     void onOcr();                     // OCR 扫描合同 + 大模型提取字段
+    void filterTree(const QString& text); // 左侧树按关键字过滤
 
 private:
     void buildUi();
@@ -79,6 +82,8 @@ private:
     qint64 currentPid_ = 0;
 
     QTreeWidget* tree_ = nullptr;
+    QLineEdit* search_ = nullptr;
+    QLabel* treeCount_ = nullptr;
     QStackedWidget* stack_ = nullptr;
     ProjectDetailPanel* detailPanel_ = nullptr;
     DashboardView* dashboardView_ = nullptr;
