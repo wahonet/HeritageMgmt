@@ -82,6 +82,19 @@
 - 需搬 `excelimport`：LoadFinancials 读 .xlsx + fieldMap + DeriveStatus。**依赖难点**：Qt6 base 无 xlsx 读取器（Go 用 excelize）。方案：嵌入极简 zip 解析(.xlsx=zip+xml) 或 QProcess 调外部 unzip；定后实现。
 - ImportService：事务 + ResetTables + 遍历 Basicdata 子目录 + classify + excelimport + 复制文件 + 插记录。
 
+### M4b-1 — 内置 .xlsx 读取器 + excelimport（已完成）
+
+零外部依赖读取 .xlsx（按架构文档"简易解 zip+XML"路线，避开 QtCharts/QtXlsx 之类要往三套构建链加模块的依赖）：
+- `core/excelimport/Inflate`：极简 raw-DEFLATE 解压器（RFC 1951，~180 行；处理 stored/固定Huffman/动态Huffman + 长度距离回填，含重叠拷贝）。
+- `core/excelimport/ZipReader`：解析 zip 中央目录，按名取条目（method 0=stored / 8=DEFLATE→Inflate）。
+- `core/excelimport/XlsxReader`：QXmlStreamReader 解析 xl/sharedStrings.xml + xl/worksheets/sheet1.xml → 二维字符串表（列由 r="A1" 解码、空单元补齐、shared/index/number/inlineStr 均支持）。
+- `core/excelimport/ExcelImport`：搬 Go financials.go —— loadFinancials（找首个 .xlsx、定位"项目名称"表头行、序号非数字过滤小计/合计、_name=第二列）/ finGet / parseFloat / trimDate / deriveStatus。
+- `tests/fixtures/sample.xlsx`：Python 标准库 zipfile 生成的合法 .xlsx（ZIP_DEFLATE 压缩，用于真测 inflate）。
+- `excel_test`：读 fixture 验全链路（3 记录/过滤小计/finGet/parseFloat/deriveStatus/trimDate）。**7 单测 amd64 全过**。
+- 注：本提交仅 .xlsx 读取 + excelimport（M4b-1）；ImportService 编排 + 导入 UI 为 M4b-2（下一步）。
+
+**本块踩坑**：QXmlStreamReader 在 Qt6 属 QtCore（非 QtXml），故 excel_test 不链 Qt::Xml（顶层 find_package 也未含 Xml）。
+
 ### M3 — 上传 + 文件预览 + 删除（已完成）
 
 - `core/storage/LogRepo`（insert/list，搬 Go log_repo）；`DocumentRepo` 补 byId/insert/remove/removeByType。

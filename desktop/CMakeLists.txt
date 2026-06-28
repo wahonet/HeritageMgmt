@@ -30,6 +30,10 @@ add_library(heritage_core STATIC
     src/core/dashboard/DashboardService.cpp
     src/core/documents/DocumentService.cpp
     src/core/recycle/RecycleService.cpp
+    src/core/excelimport/Inflate.cpp
+    src/core/excelimport/ZipReader.cpp
+    src/core/excelimport/XlsxReader.cpp
+    src/core/excelimport/ExcelImport.cpp
 )
 target_include_directories(heritage_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(heritage_core PUBLIC

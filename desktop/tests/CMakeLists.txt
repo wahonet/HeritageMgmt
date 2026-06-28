@@ -40,6 +40,15 @@ target_link_libraries(document_test PRIVATE
 target_compile_definitions(document_test PRIVATE HERITAGE_RESOURCE_DIR="${_res_dir}")
 add_test(NAME document_test COMMAND document_test)
 
+# excelimport 单测：自写 xlsx 解析器读真实 .xlsx fixture，验 LoadFinancials/finGet/...
+set(_fix_dir "${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
+add_executable(excel_test ExcelTest.cpp)
+target_link_libraries(excel_test PRIVATE
+    heritage_core
+    Qt${QT_VERSION_MAJOR}::Core)
+target_compile_definitions(excel_test PRIVATE HERITAGE_FIXTURE_DIR="${_fix_dir}")
+add_test(NAME excel_test COMMAND excel_test)
+
 # config_test 同时链接 qrc，以验证“磁盘读不到 → 回退 :/config 资源”。
 add_executable(config_test ConfigTest.cpp ../resources/heritage.qrc)
 target_link_libraries(config_test PRIVATE
