@@ -10,6 +10,8 @@
 #include <QByteArray>
 #include <QString>
 
+class QJsonObject;
+
 namespace heritage::config {
 
 // 读取 config/<name>：磁盘优先，资源兜底。返回空 QByteArray 表示两者都读不到。
@@ -20,6 +22,9 @@ bool loadDocWorkflow(const QString& appBase, DocTypeCfg& doc, Workflow& wf, QStr
 
 // 解析 rules.json；缺失/非法回退 defaultRules()。
 Rules loadRules(const QString& appBase);
+
+// 解析 llm.json（磁盘 config/llm.json 优先，否则内嵌默认）；密钥优先级：json.api_key > DEEPSEEK_API_KEY。
+LlmConfig loadLlm(const QString& appBase);
 
 // 默认规则（与 Go defaultRules 一致：国保资质阈值 + 状态关键词）。
 Rules defaultRules();

@@ -7,6 +7,9 @@
 #include "core/stats/StatsService.h"
 #include "core/import/ImportService.h"
 #include "core/report/Report.h"
+#include "core/report/Analysis.h"
+#include "core/llm/Client.h"
+#include "core/ocr/OcrService.h"
 #include "core/storage/DocumentRepo.h"
 #include "core/storage/LogRepo.h"
 #include "core/storage/ProjectRepo.h"
@@ -23,6 +26,7 @@
 #include <QDesktopServices>
 #include <QDir>
 #include <QFileDialog>
+#include <QHash>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QFont>
@@ -73,6 +77,8 @@ MainWindow::MainWindow(const AppConfig& cfg, QWidget* parent)
     logs_ = std::make_unique<LogRepo>(db_.connection());
     docSvc_ = std::make_unique<DocumentService>(*projects_, *docs_, *logs_, cfg_);
     recycleSvc_ = std::make_unique<RecycleService>(*projects_, *units_, *logs_, cfg_);
+    llmClient_ = std::make_unique<heritage::llm::Client>(cfg_.llm);
+    ocrSvc_ = std::make_unique<OCRService>(*projects_, cfg_, *llmClient_);
 
     buildUi();
     loadTree();
@@ -99,6 +105,7 @@ void MainWindow::buildUi() {
     btnDelete_ = new QPushButton(QStringLiteral("✕ 删除"), topBar);
     btnImport_ = new QPushButton(QStringLiteral("📥 导入"), topBar);
     btnReport_ = new QPushButton(QStringLiteral("📄 报告"), topBar);
+    btnOcr_ = new QPushButton(QStringLiteral("🔍 OCR"), topBar);
     auto* btnRefresh = new QPushButton(QStringLiteral("刷新"), topBar);
     topLay->addWidget(title);
     topLay->addStretch(1);
@@ -112,6 +119,7 @@ void MainWindow::buildUi() {
     topLay->addWidget(btnDelete_);
     topLay->addWidget(btnImport_);
     topLay->addWidget(btnReport_);
+    topLay->addWidget(btnOcr_);
     topLay->addWidget(btnRefresh);
 
     // 左侧树
@@ -162,6 +170,7 @@ void MainWindow::buildUi() {
     connect(btnDelete_, &QPushButton::clicked, this, &MainWindow::onRecycleProject);
     connect(btnImport_, &QPushButton::clicked, this, &MainWindow::onImport);
     connect(btnReport_, &QPushButton::clicked, this, &MainWindow::onReport);
+    connect(btnOcr_, &QPushButton::clicked, this, &MainWindow::onOcr);
     connect(tree_, &QTreeWidget::currentItemChanged, this, &MainWindow::onCurrentChanged);
     connect(recycleView_, &RecycleView::restoreRequested, this, &MainWindow::onRestoreRecycled);
     connect(recycleView_, &RecycleView::purgeRequested, this, &MainWindow::onPurgeRecycled);
@@ -460,7 +469,17 @@ void MainWindow::onReport() {
     rd.missingRequired = d->missingRequired;
     rd.documents = d->documents;
     rd.qualWarnings = d->qualWarnings;
-    rd.analysis = QString(); // LLM 分析在 M6-2 接入
+    if (llmClient_->configured()) {
+        setEnabled(false);
+        QString aerr;
+        const QString analysis = heritage::report::generateAnalysis(
+            *llmClient_, rd, (cfg_.llm.timeoutSeconds > 0 ? cfg_.llm.timeoutSeconds : 90) * 1000, &aerr);
+        setEnabled(true);
+        if (!aerr.isEmpty())
+            QMessageBox::warning(this, QStringLiteral("智能分析"),
+                                 QStringLiteral("生成分析失败：") + aerr);
+        rd.analysis = analysis;
+    }
 
     const QString suggested = cfg_.dataDir + QStringLiteral("/") +
                               (d->project.folder.isEmpty() ? QStringLiteral("report") : d->project.folder) +
@@ -476,6 +495,38 @@ void MainWindow::onReport() {
     }
     logs_->insert(QStringLiteral("生成报告"), QStringLiteral("工程#%1").arg(currentPid_), path);
     QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+}
+
+void MainWindow::onOcr() {
+    if (currentPid_ <= 0) {
+        QMessageBox::information(this, QStringLiteral("OCR"), QStringLiteral("请先在左侧选择一个工程。"));
+        return;
+    }
+    if (!llmClient_->configured()) {
+        QMessageBox::warning(this, QStringLiteral("OCR"),
+            QStringLiteral("未配置大模型API密钥（请编辑 config/llm.json）。"));
+        return;
+    }
+    const auto ret = QMessageBox::question(this, QStringLiteral("OCR 扫描"),
+        QStringLiteral("将扫描该工程的项目/设计/监理合同 PDF，OCR 后由大模型提取参建单位/资质/"
+                       "合同字段并回填。\n需本机已装 tesseract(含 chi_sim) + PDF 渲染工具，并联网。\n继续？"));
+    if (ret != QMessageBox::Yes)
+        return;
+
+    setEnabled(false);
+    const QHash<QString, QString> fields = ocrSvc_->scanContracts(currentPid_);
+    setEnabled(true);
+
+    if (fields.isEmpty() && !ocrSvc_->lastError().isEmpty()) {
+        QMessageBox::warning(this, QStringLiteral("OCR"), ocrSvc_->lastError());
+        return;
+    }
+    const int n = ocrSvc_->applyFields(currentPid_, fields);
+    logs_->insert(QStringLiteral("OCR扫描"), QStringLiteral("工程#%1").arg(currentPid_),
+                  QStringLiteral("回填%1个字段").arg(n));
+    statusBar()->showMessage(QStringLiteral("OCR 完成，回填 %1 个字段").arg(n), 8000);
+    loadTree();
+    showProject(currentPid_);
 }
 
 } // namespace heritage

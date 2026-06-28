@@ -24,6 +24,8 @@ class UnitRepo;
 class LogRepo;
 class DocumentService;
 class RecycleService;
+namespace llm { class Client; }
+class OCRService;
 class ProjectDetailPanel;
 class DashboardView;
 class StatsView;
@@ -56,6 +58,7 @@ private slots:
     void onPurgeRecycled(qint64 id);
     void onImport();                  // 批量导入 Basicdata 目录
     void onReport();                  // 生成当前工程 PDF 报告
+    void onOcr();                     // OCR 扫描合同 + 大模型提取字段
 
 private:
     void buildUi();
@@ -70,6 +73,8 @@ private:
     std::unique_ptr<LogRepo> logs_;
     std::unique_ptr<DocumentService> docSvc_;
     std::unique_ptr<RecycleService> recycleSvc_;
+    std::unique_ptr<llm::Client> llmClient_;
+    std::unique_ptr<OCRService> ocrSvc_;
     QHash<qint64, Project> projectsById_;
     qint64 currentPid_ = 0;
 
@@ -90,6 +95,7 @@ private:
     QPushButton* btnEdit_ = nullptr;
     QPushButton* btnImport_ = nullptr;
     QPushButton* btnReport_ = nullptr;
+    QPushButton* btnOcr_ = nullptr;
 };
 
 } // namespace heritage

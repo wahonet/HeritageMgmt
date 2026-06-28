@@ -20,6 +20,7 @@ struct AppConfig {
     DocTypeCfg docCfg;
     Workflow workflow;
     Rules rules;
+    LlmConfig llm;
 
     // 解析路径（exe 同级优先，回退 cwd）+ 创建 data 目录 + 加载配置。
     // 失败返回 std::nullopt 并写 err。

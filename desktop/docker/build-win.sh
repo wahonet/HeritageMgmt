@@ -47,8 +47,8 @@ MSYS_NO_PATHCONV=1 docker run --rm --platform linux/amd64 \
         rm -rf "$DEST"; mkdir -p "$DEST/platforms" "$DEST/sqldrivers"
         cp build-win/heritage-desktop.exe "$DEST/"
 
-        # Qt6 核心 DLL
-        for d in Qt6Core Qt6Gui Qt6Widgets Qt6Sql; do
+        # Qt6 核心 DLL（Network=LLM, PrintSupport=QPdfWriter 报告，均由 heritage_core 引入）
+        for d in Qt6Core Qt6Gui Qt6Widgets Qt6Sql Qt6Network Qt6PrintSupport; do
             [ -f "$QTBIN/$d.dll" ] && cp "$QTBIN/$d.dll" "$DEST/"
         done
         # mingw 运行时（Qt 官方 mingw 包自带；若缺则回退 Debian mingw 工具链）

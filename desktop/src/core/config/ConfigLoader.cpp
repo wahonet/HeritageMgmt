@@ -134,4 +134,30 @@ Rules loadRules(const QString& appBase) {
     return r;
 }
 
+LlmConfig loadLlm(const QString& appBase) {
+    LlmConfig cfg;
+    const QByteArray bytes = readFile(appBase, QStringLiteral("llm.json"));
+    if (!bytes.isEmpty()) {
+        QJsonParseError pe;
+        const QJsonDocument d = QJsonDocument::fromJson(bytes, &pe);
+        if (d.isObject()) {
+            const QJsonObject o = d.object();
+            cfg.baseUrl = o.value(QStringLiteral("base_url")).toString();
+            cfg.model = o.value(QStringLiteral("model")).toString();
+            cfg.extractionPrompt = o.value(QStringLiteral("extraction_prompt")).toString();
+            cfg.apiKey = o.value(QStringLiteral("api_key")).toString();
+            if (o.contains(QStringLiteral("temperature")))
+                cfg.temperature = o.value(QStringLiteral("temperature")).toDouble();
+            if (o.contains(QStringLiteral("max_tokens")))
+                cfg.maxTokens = o.value(QStringLiteral("max_tokens")).toDouble();
+            if (o.contains(QStringLiteral("timeout_seconds")))
+                cfg.timeoutSeconds = o.value(QStringLiteral("timeout_seconds")).toInt();
+        }
+    }
+    // 密钥优先级：config/llm.json 的 api_key > DEEPSEEK_API_KEY 环境变量
+    if (cfg.apiKey.isEmpty())
+        cfg.apiKey = QString::fromLocal8Bit(qgetenv("DEEPSEEK_API_KEY"));
+    return cfg;
+}
+
 } // namespace heritage::config

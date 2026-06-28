@@ -52,9 +52,28 @@
 
 ## 4. 当前状态与下一步
 
-- **已完成**：M1（地基+三端）；M2（业务逻辑+详情看板）；M3（上传+预览）；M4a（编辑+向导）；M5（统计+日志+回收站）；M4b（批量导入）；**M6-1（PDF 报告）**。
-- **进行中**：M6-2 LLM + OCR（最后一块），之后 M7 收尾。
+- **已完成**：M1（地基+三端）；M2（业务逻辑+详情看板）；M3（上传+预览）；M4（编辑+向导+批量导入）；M5（统计+日志+回收站）；**M6（PDF 报告 + LLM + OCR）**。原系统功能基本对齐。
+- **进行中/待办**：M7 收尾（qss 美化、打包脚本完善、README）；麒麟端实地验证。
 - **原则**：每推进一块就 `./docker/build.sh linux/amd64` 跑测试；按里程碑分提交。
+
+### M6-2 — LLM 客户端 + 智能分析 + OCR（已完成）
+
+- `core/llm/Client`（QNetworkAccessManager 同步 chat/completions，搬 Go llm/client.go）：configured / chat（阻塞 QEventLoop + 超时）；buildRequestBody/parseContent 抽为静态纯函数供单测。
+- `LlmConfig` + `config::loadLlm`（config/llm.json 磁盘>内嵌默认；密钥：json.api_key > DEEPSEEK_API_KEY）+ `AppConfig.llm`。新增内嵌模板 `resources/config/llm.json`（api_key 空）。
+- `core/ocr/OcrTools`（findTool/pdfToImages/ocrImage，QProcess 调 tesseract/pdftoppm/mutool/magick，搬 Go ocr/tools.go）+ `core/ocr/OcrService`（scanContracts 编排 + extractWithLLM + applyFields）。
+- `core/report/Analysis`（GenerateAnalysis：buildAnalysisPrompt 纯函数 + LLM 调用；未配密钥返回占位）。
+- MainWindow：顶栏「🔍 OCR」「📄 报告」；OCR=扫描合同→LLM 提取→回填字段；报告生成前若配密钥则 generateAnalysis 填"智能分析"节。
+- CMake 增 `Network` 组件；**build-win.sh 包补 Qt6Network.dll + Qt6PrintSupport.dll**（否则 exe 起不来）。
+- `llm_test`（buildRequestBody/parseContent/configured/buildAnalysisPrompt，离线不联网）；**10 单测 amd64 全过**；Windows 构建+运行通过。
+
+**本块踩坑**：
+- Client.cpp `setRawHeader` 第二参须 QByteArray，不能 QString+QByteArray。
+- build-win.sh 打包漏 Qt6Network.dll/Qt6PrintSupport.dll → exe 报 "cannot open shared object"；补到 DLL 拷贝列表。
+- **LLM 联网实测受限**：安全策略禁止我把密钥放进命令行/curl；故联网调用只能由 **运行的 exe 自身**（读 config/llm.json）发起——在 GUI 点「📄报告」触发 DeepSeek 智能分析。key 仅放在 gitignored 的 `dist/.../config/llm.json`，绝不进提交/记忆。
+
+**待现场验证（你触发）**：
+- LLM 联网：运行 exe → 选工程 → 点「📄报告」→ PDF 的"智能分析报告"节应为大模型生成的文本（验证 key/model/base_url + 本机联网）。
+- OCR：运行 exe → 选有合同PDF的工程 → 点「🔍OCR」（需本机装 tesseract+chi_sim + PDF渲染工具，联网）。
 
 ### M6-1 — PDF 报告（已完成）
 

@@ -1,0 +1,10 @@
+{
+  "_comment": "大模型(DeepSeek)配置模板。磁盘 config/llm.json 优先覆盖此内嵌默认。api_key 模板留空，运行时填或用 DEEPSEEK_API_KEY 环境变量。切勿把含密钥的此文件提交。",
+  "base_url": "https://api.deepseek.com/v1",
+  "model": "deepseek-chat",
+  "api_key": "",
+  "extraction_prompt": "你是一个信息抽取助手。请从以下合同 OCR 文本中提取参建单位与合同信息，严格输出 JSON（不要任何多余文字、不要 markdown 代码块），字段如下：\nowner_unit(建设单位/甲方)\nconstruction_unit(施工单位)\nconstruction_qual(施工资质等级)\ndesign_unit(设计单位)\ndesign_qual(设计资质等级)\nsupervision_unit(监理单位)\nsupervision_qual(监理资质等级)\ncontract_no(合同编号)\ncontract_sign_date(合同签订日期, YYYY-MM-DD)\ncontract_end(合同约定完工日期, YYYY-MM-DD)\n无法判断的字段留空字符串。只输出 JSON 对象本身。",
+  "temperature": 0.1,
+  "max_tokens": 1500,
+  "timeout_seconds": 90
+}

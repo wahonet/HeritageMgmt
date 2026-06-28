@@ -33,6 +33,7 @@ std::optional<AppConfig> AppConfig::resolve(QString* err) {
         return std::nullopt;
     }
     c.rules = config::loadRules(c.appBase);
+    c.llm = config::loadLlm(c.appBase);
     return c;
 }
 

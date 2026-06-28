@@ -3,6 +3,7 @@
         <file>config/doc_types.json</file>
         <file>config/workflow.json</file>
         <file>config/rules.json</file>
+        <file>config/llm.json</file>
         <file>logo.png</file>
     </qresource>
 </RCC>

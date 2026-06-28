@@ -68,6 +68,13 @@ target_link_libraries(report_test PRIVATE
     Qt${QT_VERSION_MAJOR}::Gui)
 add_test(NAME report_test COMMAND report_test)
 
+# LLM 离线单测：buildRequestBody / parseContent / configured / buildAnalysisPrompt（不联网）
+add_executable(llm_test LlmTest.cpp)
+target_link_libraries(llm_test PRIVATE
+    heritage_core
+    Qt${QT_VERSION_MAJOR}::Core)
+add_test(NAME llm_test COMMAND llm_test)
+
 # config_test 同时链接 qrc，以验证“磁盘读不到 → 回退 :/config 资源”。
 add_executable(config_test ConfigTest.cpp ../resources/heritage.qrc)
 target_link_libraries(config_test PRIVATE

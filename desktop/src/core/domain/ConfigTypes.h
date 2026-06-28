@@ -68,6 +68,17 @@ struct Rules {
     QHash<QString, QStringList> statusKeywords;
 };
 
+// 大模型配置（llm.json）。对应 Go llm.Config。
+struct LlmConfig {
+    QString baseUrl;
+    QString model;
+    QString apiKey;
+    QString extractionPrompt;
+    double temperature = 0.1;
+    double maxTokens = 1500;
+    int timeoutSeconds = 90;
+};
+
 } // namespace heritage
 
 #endif // HERITAGE_CONFIG_TYPES_H
