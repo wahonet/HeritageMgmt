@@ -20,8 +20,12 @@ add_library(heritage_core STATIC
     src/core/storage/ProjectScanner.cpp
     src/core/storage/UnitRepo.cpp
     src/core/storage/ProjectRepo.cpp
+    src/core/storage/DocumentRepo.cpp
     src/core/config/ConfigLoader.cpp
     src/core/config/AppConfig.cpp
+    src/core/classify/Classify.cpp
+    src/core/analysis/AnalysisService.cpp
+    src/core/stats/StatsService.cpp
 )
 target_include_directories(heritage_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(heritage_core PUBLIC

@@ -24,4 +24,14 @@ QVector<Unit> UnitRepo::list() {
     return out;
 }
 
+QString UnitRepo::level(qint64 id) {
+    QSqlQuery q(db_);
+    if (!q.prepare(QStringLiteral("SELECT level FROM units WHERE id=?")))
+        return {};
+    q.addBindValue(id);
+    if (q.exec() && q.next())
+        return q.value(0).toString();
+    return {};
+}
+
 } // namespace heritage

@@ -18,6 +18,9 @@ public:
     // SELECT id,name,level,category,sort FROM units ORDER BY sort,id
     QVector<Unit> list();
 
+    // 某单位的保护级别（level），供 analysis 资质校验用。对应 Go UnitLevel。
+    QString level(qint64 id);
+
 private:
     QSqlDatabase db_;
 };
