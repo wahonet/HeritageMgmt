@@ -9,6 +9,7 @@
 
 #include <QSet>
 #include <QSqlDatabase>
+#include <QVariantList>
 #include <QVector>
 #include <optional>
 
@@ -34,6 +35,13 @@ public:
 
     // 某工程已有的文档类型集合。对应 Go ProjectDocTypes。
     QSet<QString> docTypes(qint64 projectId);
+
+    // 按字段更新工程。sets 为 "a=?,b=?"，vals 为对应值（不含 id，函数内追加）。对应 Go UpdateProjectFields。
+    bool updateFields(qint64 id, const QString& sets, const QVariantList& vals);
+    // 新建工程，返回新ID。对应 Go CreateProject。
+    qint64 create(qint64 unitId, const QString& name, const QString& ptype, const QString& status);
+    // 设置工程归档目录名。对应 Go SetProjectFolder。
+    bool setFolder(qint64 id, const QString& folder);
 
 private:
     QSqlDatabase db_;

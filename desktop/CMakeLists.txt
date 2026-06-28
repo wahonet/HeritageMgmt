@@ -46,6 +46,10 @@ add_executable(heritage-desktop
     src/ui/views/DashboardView.cpp
     src/ui/dialogs/UploadDialog.h
     src/ui/dialogs/UploadDialog.cpp
+    src/ui/dialogs/CreateProjectDialog.h
+    src/ui/dialogs/CreateProjectDialog.cpp
+    src/ui/dialogs/ProjectEditDialog.h
+    src/ui/dialogs/ProjectEditDialog.cpp
     resources/heritage.qrc
 )
 # Windows(mingw) 交叉编译链接兜底：rcc 生成代码引用的 qResourceFeatureZstd() 在

@@ -8,10 +8,13 @@
 #include "core/storage/ProjectRepo.h"
 #include "core/storage/UnitRepo.h"
 #include "ui/dialogs/UploadDialog.h"
+#include "ui/dialogs/CreateProjectDialog.h"
+#include "ui/dialogs/ProjectEditDialog.h"
 #include "ui/widgets/ProjectDetailPanel.h"
 #include "ui/views/DashboardView.h"
 
 #include <QDesktopServices>
+#include <QDir>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QFont>
@@ -24,6 +27,7 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 #include <QUrl>
+#include <QVariantList>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -78,10 +82,14 @@ void MainWindow::buildUi() {
     title->setFont(tf);
     btnDashboard_ = new QPushButton(QStringLiteral("📊 看板"), topBar);
     btnUpload_ = new QPushButton(QStringLiteral("⬆ 上传"), topBar);
+    btnAdd_ = new QPushButton(QStringLiteral("➕ 新建"), topBar);
+    btnEdit_ = new QPushButton(QStringLiteral("✎ 编辑"), topBar);
     auto* btnRefresh = new QPushButton(QStringLiteral("刷新"), topBar);
     topLay->addWidget(title);
     topLay->addStretch(1);
     topLay->addWidget(btnDashboard_);
+    topLay->addWidget(btnAdd_);
+    topLay->addWidget(btnEdit_);
     topLay->addWidget(btnUpload_);
     topLay->addWidget(btnRefresh);
 
@@ -119,6 +127,8 @@ void MainWindow::buildUi() {
     connect(btnRefresh, &QPushButton::clicked, this, &MainWindow::refresh);
     connect(btnDashboard_, &QPushButton::clicked, this, &MainWindow::showDashboard);
     connect(btnUpload_, &QPushButton::clicked, this, &MainWindow::onUpload);
+    connect(btnAdd_, &QPushButton::clicked, this, &MainWindow::onAddProject);
+    connect(btnEdit_, &QPushButton::clicked, this, &MainWindow::onEditProject);
     connect(tree_, &QTreeWidget::currentItemChanged, this, &MainWindow::onCurrentChanged);
     connect(detailPanel_, &ProjectDetailPanel::uploadRequested, this, &MainWindow::onUpload);
     connect(detailPanel_, &ProjectDetailPanel::openDocument, this, &MainWindow::onOpenDocument);
@@ -222,6 +232,86 @@ void MainWindow::onDeleteDocument(qint64 docId) {
     if (ret != QMessageBox::Yes)
         return;
     docSvc_->deleteDocument(docId);
+    loadTree();
+    showProject(currentPid_);
+}
+
+void MainWindow::onAddProject() {
+    // 工程类型建议（来自 workflow.project_types 规则）
+    QStringList types;
+    for (const TypeRule& r : cfg_.workflow.typeRules)
+        types << r.type;
+    CreateProjectDialog dlg(units_->list(), types, this);
+    if (dlg.exec() != QDialog::Accepted)
+        return;
+    const CreateProjectInput in = dlg.input();
+    if (in.name.isEmpty()) {
+        QMessageBox::information(this, QStringLiteral("新建"), QStringLiteral("工程名称不能为空。"));
+        return;
+    }
+    qint64 unitId = in.unitId;
+    QString unitLabel;
+    if (!in.newUnit.isEmpty()) {
+        unitId = units_->createUnit(in.newUnit, in.level, 99);
+        unitLabel = in.newUnit;
+        if (unitId == 0) {
+            QMessageBox::warning(this, QStringLiteral("新建"), QStringLiteral("创建单位失败。"));
+            return;
+        }
+    }
+    if (unitId == 0) {
+        QMessageBox::information(this, QStringLiteral("新建"), QStringLiteral("请选择或新建文物单位。"));
+        return;
+    }
+    if (unitLabel.isEmpty())
+        unitLabel = QStringLiteral("单位#%1").arg(unitId);
+    const QString status = in.status.isEmpty() ? QStringLiteral("前期") : in.status;
+    const qint64 pid = projects_->create(unitId, in.name, in.ptype, status);
+    if (pid == 0) {
+        QMessageBox::warning(this, QStringLiteral("新建"), QStringLiteral("创建工程失败（单位名可能重复）。"));
+        return;
+    }
+    const QString folder = QStringLiteral("P%1").arg(pid, 4, 10, QLatin1Char('0'));
+    projects_->setFolder(pid, folder);
+    QDir().mkpath(cfg_.projectsDir + QStringLiteral("/") + folder);
+    logs_->insert(QStringLiteral("新建工程"), QStringLiteral("工程#%1 %2").arg(pid).arg(in.name), folder);
+    statusBar()->showMessage(QStringLiteral("已新建工程 %1（%2）").arg(in.name).arg(folder), 5000);
+    loadTree();
+    showProject(pid);
+}
+
+void MainWindow::onEditProject() {
+    if (currentPid_ <= 0) {
+        QMessageBox::information(this, QStringLiteral("编辑"), QStringLiteral("请先在左侧选择一个工程。"));
+        return;
+    }
+    const auto proj = projects_->get(currentPid_);
+    if (!proj)
+        return;
+    ProjectEditDialog dlg(*proj, this);
+    if (dlg.exec() != QDialog::Accepted)
+        return;
+    const auto fields = dlg.fields();
+    if (fields.isEmpty()) {
+        QMessageBox::information(this, QStringLiteral("编辑"), QStringLiteral("无可更新字段。"));
+        return;
+    }
+    QString sets;
+    QVariantList vals;
+    QStringList logParts;
+    for (const auto& f : fields) {
+        sets += (sets.isEmpty() ? QString() : QStringLiteral(",")) + f.first + QStringLiteral("=?");
+        vals << f.second;
+        logParts << QStringLiteral("%1=%2").arg(f.first,
+                                                f.second.isNull() ? QStringLiteral("(空)") : f.second.toString());
+    }
+    if (!projects_->updateFields(currentPid_, sets, vals)) {
+        QMessageBox::warning(this, QStringLiteral("编辑"), QStringLiteral("更新失败。"));
+        return;
+    }
+    logs_->insert(QStringLiteral("编辑工程"), QStringLiteral("工程#%1").arg(currentPid_),
+                  logParts.join(QStringLiteral(", ")));
+    statusBar()->showMessage(QStringLiteral("已更新工程#%1").arg(currentPid_), 5000);
     loadTree();
     showProject(currentPid_);
 }

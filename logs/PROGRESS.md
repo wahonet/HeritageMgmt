@@ -52,9 +52,24 @@
 
 ## 4. 当前状态与下一步
 
-- **已完成**：M1（地基+三端）；M2-core（业务逻辑+单测）；M2-UI（工程详情分析+看板）；M3（上传+文件预览+删除）。
-- **进行中**：向「完全一致功能」推进。下一步：编辑+新建向导+批量导入(M4，需搬 excelimport)、统计图表(QtCharts)+日志+回收站(M5)、OCR+PDF+LLM(M6)。
+- **已完成**：M1（地基+三端）；M2-core（业务逻辑+单测）；M2-UI（工程详情分析+看板）；M3（上传+预览+删除）；M4a（编辑+新建工程向导）。
+- **进行中**：向「完全一致功能」推进。下一步：M4b 批量导入(需搬 excelimport——要解决 .xlsx 读取依赖)、统计图表(QtCharts)+日志+回收站(M5)、OCR+PDF+LLM(M6)。
 - **原则**：每推进一块就 `./docker/build.sh linux/amd64` 跑测试；按里程碑分提交。
+
+### M4a — 编辑工程 + 新建工程向导（已完成）
+
+- `core/storage`：`ProjectRepo` 补 updateFields/create/setFolder；`UnitRepo` 补 createUnit（对应 Go UpdateProjectFields/CreateProject/SetProjectFolder/CreateUnit）。
+- `ui/dialogs/CreateProjectDialog`：工程名 + 选已有单位/新建单位 + 级别 + 类型(可编辑，带 workflow.project_types 建议) + 状态。
+- `ui/dialogs/ProjectEditDialog`：覆盖 Go updateAllowed 全部 26 字段，分 基本信息/资金(万元)/参建单位 三组；空串→NULL、空金额→NULL，返回有序 (字段,绑定值)。
+- `MainWindow`：顶栏加「➕ 新建」「✎ 编辑」；onAddProject（建单位→建工程→folder=P%04d→建目录→日志）；onEditProject（拼 sets/vals→updateFields→日志）。操作后自动刷新+重显。
+- UI：归档文件区从 120 加大到 260 + Expanding（用户反馈"归档框太小"）。
+- `storage_test` 增 create/setFolder/updateFields(含空→NULL)/createUnit 断言；**6 单测 amd64 全过**；Windows 构建+运行通过。
+
+**本块踩坑**：lambda `mk` 未捕获 host/lay → 改 `[&]`。种子前务必确认无 exe 占用 DB（强杀后多个残留进程会锁库致 sqlite 打不开）。
+
+### M4b 待办（批量导入，下一步）
+- 需搬 `excelimport`：LoadFinancials 读 .xlsx + fieldMap + DeriveStatus。**依赖难点**：Qt6 base 无 xlsx 读取器（Go 用 excelize）。方案：嵌入极简 zip 解析(.xlsx=zip+xml) 或 QProcess 调外部 unzip；定后实现。
+- ImportService：事务 + ResetTables + 遍历 Basicdata 子目录 + classify + excelimport + 复制文件 + 插记录。
 
 ### M3 — 上传 + 文件预览 + 删除（已完成）
 

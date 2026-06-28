@@ -42,6 +42,8 @@ private slots:
     void onUpload();                  // 上传到当前工程
     void onOpenDocument(qint64 docId);
     void onDeleteDocument(qint64 docId);
+    void onAddProject();              // 新建工程向导
+    void onEditProject();             // 编辑当前工程
 
 private:
     void buildUi();
@@ -64,6 +66,8 @@ private:
     DashboardView* dashboardView_ = nullptr;
     QPushButton* btnDashboard_ = nullptr;
     QPushButton* btnUpload_ = nullptr;
+    QPushButton* btnAdd_ = nullptr;
+    QPushButton* btnEdit_ = nullptr;
 };
 
 } // namespace heritage

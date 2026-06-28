@@ -21,6 +21,9 @@ public:
     // 某单位的保护级别（level），供 analysis 资质校验用。对应 Go UnitLevel。
     QString level(qint64 id);
 
+    // 新建文物单位，返回新ID。对应 Go CreateUnit。
+    qint64 createUnit(const QString& name, const QString& level, int sort);
+
 private:
     QSqlDatabase db_;
 };

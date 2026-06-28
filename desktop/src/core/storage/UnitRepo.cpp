@@ -34,4 +34,16 @@ QString UnitRepo::level(qint64 id) {
     return {};
 }
 
+qint64 UnitRepo::createUnit(const QString& name, const QString& level, int sort) {
+    QSqlQuery q(db_);
+    if (!q.prepare(QStringLiteral("INSERT INTO units(name,level,sort) VALUES(?,?,?)")))
+        return 0;
+    q.addBindValue(name);
+    q.addBindValue(level);
+    q.addBindValue(sort);
+    if (!q.exec())
+        return 0;
+    return q.lastInsertId().toLongLong();
+}
+
 } // namespace heritage

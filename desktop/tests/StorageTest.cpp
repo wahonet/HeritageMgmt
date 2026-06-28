@@ -10,6 +10,7 @@
 #include <QDateTime>
 #include <QDir>
 #include <QSqlQuery>
+#include <QVariantList>
 #include <cstdio>
 #include <cstdlib>
 
@@ -93,6 +94,23 @@ int main(int argc, char* argv[]) {
     auto got = projects.get(1);
     CHECK(got.has_value());
     CHECK(got->name == QStringLiteral("甲工程一"));
+
+    // ---- CRUD: create / setFolder / updateFields / createUnit ----
+    const qint64 pid = projects.create(1, QStringLiteral("CRUD工程"), QStringLiteral("修缮工程"),
+                                       QStringLiteral("前期"));
+    CHECK(pid > 0);
+    CHECK(projects.setFolder(pid, QStringLiteral("P0099")));
+    CHECK(projects.updateFields(pid,
+            QStringLiteral("status=?,central_funding=?,progress_note=?"),
+            QVariantList{QStringLiteral("在建"), 88.5, QVariant()})); // 空→NULL
+    auto got2 = projects.get(pid);
+    CHECK(got2.has_value());
+    CHECK(got2->status == QStringLiteral("在建"));
+    CHECK(got2->centralFunding.has_value() && *got2->centralFunding == 88.5);
+    CHECK(got2->progressNote.isEmpty()); // NULL→空串
+    CHECK(got2->folder == QStringLiteral("P0099"));
+    const qint64 uid2 = units.createUnit(QStringLiteral("二号单位"), QStringLiteral("省保"), 5);
+    CHECK(uid2 > 0);
 
     QDir(dir).removeRecursively();
     std::printf("storage_test: PASS\n");

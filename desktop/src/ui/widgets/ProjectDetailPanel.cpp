@@ -111,7 +111,8 @@ void ProjectDetailPanel::buildUi() {
     btnRow->addStretch(1);
     filesLay->addLayout(btnRow);
     filesList_ = new QListWidget(boxFiles);
-    filesList_->setMinimumHeight(120);
+    filesList_->setMinimumHeight(260);
+    filesList_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     filesLay->addWidget(filesList_);
     lay->addWidget(boxFiles);
 

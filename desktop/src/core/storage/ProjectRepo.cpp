@@ -1,5 +1,6 @@
 #include "ProjectRepo.h"
 
+#include <QDateTime>
 #include <QSqlError>
 #include <QSqlQuery>
 
@@ -74,6 +75,40 @@ QSet<QString> ProjectRepo::docTypes(qint64 projectId) {
         while (q.next())
             out.insert(q.value(0).toString());
     return out;
+}
+
+bool ProjectRepo::updateFields(qint64 id, const QString& sets, const QVariantList& vals) {
+    QSqlQuery q(db_);
+    if (!q.prepare(QStringLiteral("UPDATE projects SET ") + sets + QStringLiteral(" WHERE id=?")))
+        return false;
+    for (const QVariant& v : vals)
+        q.addBindValue(v);
+    q.addBindValue(id);
+    return q.exec();
+}
+
+qint64 ProjectRepo::create(qint64 unitId, const QString& name, const QString& ptype, const QString& status) {
+    QSqlQuery q(db_);
+    if (!q.prepare(QStringLiteral(
+            "INSERT INTO projects(unit_id,name,ptype,status,created) VALUES(?,?,?,?,?)")))
+        return 0;
+    q.addBindValue(unitId);
+    q.addBindValue(name);
+    q.addBindValue(ptype);
+    q.addBindValue(status);
+    q.addBindValue(QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss")));
+    if (!q.exec())
+        return 0;
+    return q.lastInsertId().toLongLong();
+}
+
+bool ProjectRepo::setFolder(qint64 id, const QString& folder) {
+    QSqlQuery q(db_);
+    if (!q.prepare(QStringLiteral("UPDATE projects SET folder=? WHERE id=?")))
+        return false;
+    q.addBindValue(folder);
+    q.addBindValue(id);
+    return q.exec();
 }
 
 } // namespace heritage
