@@ -1,4 +1,4 @@
-# 构建产物（按架构分目录：build-amd64 / build-arm64）
+# 构建产物（按架构分目录：build-amd64 / build-arm64 / build-win）
 /build*/
 /dist/
 
@@ -8,3 +8,9 @@
 # 运行时磁盘配置覆盖（空则用 resources 内嵌默认；可能含密钥，勿提交）
 /config/
 /llm.json
+
+# 运行诊断日志（每次启动写 exe 同级）
+/_diag.log
+
+# 根 .gitignore 有通配 README.md 规则(为忽略根目录法规文档)，这里放行本目录的说明文档
+!README.md

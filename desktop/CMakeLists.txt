@@ -35,6 +35,11 @@ add_executable(heritage-desktop
     src/ui/MainWindow.cpp
     resources/heritage.qrc
 )
+# Windows(mingw) 交叉编译链接兜底：rcc 生成代码引用的 qResourceFeatureZstd() 在
+# mingw 版 Qt6Core 导入库缺失，提供桩实现。Linux 原生构建不需要（不编译此文件）。
+if(WIN32)
+    target_sources(heritage-desktop PRIVATE src/win_zstd_stub.cpp)
+endif()
 target_link_libraries(heritage-desktop PRIVATE
     heritage_core
     Qt${QT_VERSION_MAJOR}::Widgets

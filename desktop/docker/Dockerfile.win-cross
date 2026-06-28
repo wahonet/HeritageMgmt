@@ -1,0 +1,48 @@
+# Windows 交叉编译容器（linux/amd64 → mingw → heritage-desktop.exe）。
+# - 宿主 moc/rcc/uic：用 apt 的 Qt6(6.4.2)，可靠（aqtinstall 的 Linux 版不稳定）。
+# - 目标 Qt：aqtinstall 仅装 Windows mingw 版（提供 .dll/.lib/头/插件）。
+# - mingw-w64 交叉编译；AUTOMOC 经 QT_HOST_PATH 调宿主 moc。
+# 不在本机装任何东西，全部在容器内完成。
+FROM debian:bookworm
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG QT_VERSION=6.7.3
+ARG QT_MIRROR=https://mirrors.aliyun.com/qt
+
+# 阿里云 apt 镜像（本机有 DNS 拦截代理，清华/debian 时通时断；阿里云最稳）
+RUN rm -f /etc/apt/sources.list.d/debian.sources \
+    && echo "deb http://mirrors.aliyun.com/debian/ bookworm main" > /etc/apt/sources.list \
+    && echo "deb http://mirrors.aliyun.com/debian/ bookworm-updates main" >> /etc/apt/sources.list \
+    && echo "deb http://mirrors.aliyun.com/debian-security/ bookworm-security main" >> /etc/apt/sources.list
+
+# 本机有 TUN 代理，容器网络到镜像源时通时断 → 整命令外层重试，跨越坏窗口。
+RUN s=1; for i in $(seq 1 10); do \
+        apt-get update && apt-get install -y --no-install-recommends -o Acquire::Retries=15 \
+            mingw-w64 cmake make qt6-base-dev qt6-base-dev-tools \
+            python3 python3-pip curl ca-certificates \
+        && s=0 && break || { echo "=== apt 第 $i 次失败，15s 后重试 ==="; sleep 15; }; \
+    done; rm -rf /var/lib/apt/lists/*; \
+    for i in $(seq 1 10); do \
+        pip3 install --break-system-packages aqtinstall && s=0 && break \
+        || { echo "=== pip 第 $i 次失败，10s 后重试 ==="; sleep 10; }; \
+    done; \
+    [ "$s" = "0" ]
+
+# 仅装 Windows mingw 目标 Qt（大下载，外层重试跨越坏窗口）
+RUN s=1; for i in $(seq 1 10); do \
+        aqt install-qt windows desktop ${QT_VERSION} win64_mingw -O /opt/qt -b ${QT_MIRROR} \
+        && s=0 && break || { echo "=== aqt 第 $i 次失败，15s 后重试 ==="; sleep 15; }; \
+    done; [ "$s" = "0" ]
+
+# 构造 QT_HOST_PATH：把 Debian Qt6(6.4.2) 宿主工具软链到 Qt 标准布局，供交叉编译 AUTOMOC 使用
+RUN mkdir -p /opt/qt-host/libexec /opt/qt-host/bin && \
+    for t in moc rcc uic; do \
+        ln -sf /usr/lib/qt6/libexec/$t /opt/qt-host/libexec/$t; \
+        ln -sf /usr/lib/qt6/libexec/$t /opt/qt-host/bin/$t; \
+    done && \
+    ln -sfn /usr/lib/x86_64-linux-gnu/qt6/mkspecs /opt/qt-host/mkspecs
+
+ENV QT_HOST_PATH=/opt/qt-host
+
+WORKDIR /src
+CMD ["bash"]

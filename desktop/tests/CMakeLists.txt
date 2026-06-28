@@ -15,4 +15,7 @@ target_link_libraries(config_test PRIVATE
     Qt${QT_VERSION_MAJOR}::Sql)
 target_compile_definitions(config_test PRIVATE
     HERITAGE_RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../resources")
+if(WIN32)
+    target_sources(config_test PRIVATE ../src/win_zstd_stub.cpp)
+endif()
 add_test(NAME config_test COMMAND config_test)

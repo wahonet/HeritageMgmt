@@ -64,6 +64,10 @@ MSYS_NO_PATHCONV=1 docker run --rm --platform "$PLATFORM" \
             [ -d "$PLUG/platformthemes" ] && cp -L "$PLUG"/platformthemes/*.so "$DEST/platformthemes/" 2>/dev/null || mkdir -p "$DEST/platformthemes" && cp -L "$PLUG"/platformthemes/*.so "$DEST/platformthemes/" 2>/dev/null || true
         fi
 
+        # 默认配置随包(config/)：磁盘优先于内嵌资源，且便于现场覆盖（与 Windows 包一致）
+        mkdir -p "$DEST/config"
+        cp /src/resources/config/*.json "$DEST/config/"
+
         # 运行脚本
         cat > "$DEST/run.sh" <<"RUN"
 #!/bin/bash

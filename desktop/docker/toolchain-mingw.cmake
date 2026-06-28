@@ -1,0 +1,16 @@
+# mingw-w64 交叉编译工具链（Linux → Windows x86_64）。
+# 用法: cmake -DCMAKE_TOOLCHAIN_FILE=<本文件> -DCMAKE_PREFIX_PATH=<Windows Qt> -DQT_HOST_PATH=<Linux Qt>
+
+set(CMAKE_SYSTEM_NAME Windows)
+set(CMAKE_SYSTEM_PROCESSOR x86_64)
+
+set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc)
+set(CMAKE_CXX_COMPILER x86_64-w64-mingw32-g++)
+set(CMAKE_RC_COMPILER x86_64-w64-mingw32-windres)
+
+# 仅在 Windows Qt 树内查找库/头/包；程序（cmake/ninja）仍用宿主。
+set(CMAKE_FIND_ROOT_PATH /opt/qt/6.7.3/mingw_64)
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
