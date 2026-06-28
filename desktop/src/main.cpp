@@ -5,9 +5,11 @@
 #include "ui/MainWindow.h"
 
 #include <QApplication>
+#include <QColor>
 #include <QDir>
 #include <QFile>
 #include <QMessageBox>
+#include <QPalette>
 #include <QSqlDatabase>
 #include <QStringList>
 #include <QTextStream>
@@ -24,6 +26,28 @@ int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("heritage-desktop"));
     QApplication::setOrganizationName(QStringLiteral("HeritageMgmt"));
+
+    // 全局调色板（暖棕主题兜底）：确保下拉/列表等由 item delegate 绘制的控件
+    // 文字色可读——qss 的 ::item 文字色在可编辑 QComboBox 弹出列表上偶尔不生效，
+    // 调色板能从底层保证 Base/Text/Highlight/HighlightedText 正确。
+    {
+        QPalette pal = app.palette();
+        pal.setColor(QPalette::Window, QColor(0xf5, 0xf1, 0xea));
+        pal.setColor(QPalette::WindowText, QColor(0x2c, 0x26, 0x20));
+        pal.setColor(QPalette::Base, QColor(0xff, 0xff, 0xff));
+        pal.setColor(QPalette::AlternateBase, QColor(0xfa, 0xf6, 0xef));
+        pal.setColor(QPalette::Text, QColor(0x2c, 0x26, 0x20));
+        pal.setColor(QPalette::PlaceholderText, QColor(0x9b, 0x8f, 0x7c));
+        pal.setColor(QPalette::Button, QColor(0xf0, 0xe9, 0xdc));
+        pal.setColor(QPalette::ButtonText, QColor(0x2c, 0x26, 0x20));
+        pal.setColor(QPalette::Highlight, QColor(0xd9, 0xc8, 0xa8));
+        pal.setColor(QPalette::HighlightedText, QColor(0x2c, 0x26, 0x20));
+        pal.setColor(QPalette::ToolTipBase, QColor(0x2c, 0x26, 0x20));
+        pal.setColor(QPalette::ToolTipText, QColor(0xf5, 0xf1, 0xea));
+        pal.setColor(QPalette::Disabled, QPalette::Text, QColor(0x9b, 0x8f, 0x7c));
+        pal.setColor(QPalette::Disabled, QPalette::WindowText, QColor(0x9b, 0x8f, 0x7c));
+        app.setPalette(pal);
+    }
 
     // 全局样式（暖棕主题）：磁盘 exe 同级 style.qss 优先（Windows 交叉编译 rcc 版本错配
     // 会损坏内嵌资源文本，故磁盘优先），否则用内嵌 :/style.qss
