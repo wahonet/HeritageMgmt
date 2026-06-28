@@ -1,0 +1,66 @@
+/* 全局样式：文物保护暖棕主题。随程序编译进资源(:/style.qss)，由 main 加载。 */
+
+QMainWindow, QWidget {
+    background: #faf8f5;
+    font-family: "Microsoft YaHei", "SimSun", "Noto Sans CJK SC", "WenQuanYi Micro Hei", sans-serif;
+}
+
+QPushButton {
+    background: #6b4423;
+    color: #ffffff;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 4px;
+    min-height: 22px;
+}
+QPushButton:hover  { background: #8a5a30; }
+QPushButton:pressed{ background: #543723; }
+QPushButton:disabled { background: #b8a98f; }
+
+QGroupBox {
+    border: 1px solid #d8d0c4;
+    border-radius: 6px;
+    margin-top: 12px;
+    padding: 10px 8px 8px 8px;
+    font-weight: bold;
+    color: #6b4423;
+    background: #ffffff;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 12px;
+    padding: 0 6px;
+}
+
+QTreeWidget, QTableWidget, QListWidget, QTextEdit {
+    background: #ffffff;
+    border: 1px solid #d8d0c4;
+    alternate-background-color: #f3efe8;
+    selection-background-color: #c9b89a;
+    selection-color: #2c2c2c;
+}
+QTreeWidget::item, QTableWidget::item { padding: 3px 4px; }
+QHeaderView::section {
+    background: #6b4423;
+    color: #ffffff;
+    padding: 5px 8px;
+    border: none;
+    font-weight: bold;
+}
+
+QProgressBar {
+    border: 1px solid #d8d0c4;
+    border-radius: 3px;
+    background: #ffffff;
+    text-align: center;
+    height: 18px;
+}
+QProgressBar::chunk { background: #6b4423; border-radius: 2px; }
+
+QLabel { color: #2c2c2c; }
+QStatusBar { background: #efe9df; color: #5a4a35; }
+QScrollBar:vertical { background: #f0ebe2; width: 12px; }
+QScrollBar::handle:vertical { background: #c9b89a; border-radius: 4px; min-height: 24px; }
+QComboBox { padding: 3px 8px; border: 1px solid #d8d0c4; border-radius: 3px; background: #fff; }
+QComboBox QAbstractItemView { selection-background-color: #c9b89a; }
+QLineEdit { padding: 3px 6px; border: 1px solid #d8d0c4; border-radius: 3px; background: #fff; }

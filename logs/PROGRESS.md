@@ -52,9 +52,19 @@
 
 ## 4. 当前状态与下一步
 
-- **已完成**：M1（地基+三端）；M2（业务逻辑+详情看板）；M3（上传+预览）；M4（编辑+向导+批量导入）；M5（统计+日志+回收站）；**M6（PDF 报告 + LLM + OCR）**。原系统功能基本对齐。
-- **进行中/待办**：M7 收尾（qss 美化、打包脚本完善、README）；麒麟端实地验证。
+- **已完成**：M1（地基+三端）；M2（业务逻辑+详情看板）；M3（上传+预览）；M4（编辑+向导+批量导入）；M5（统计+日志+回收站）；M6（PDF报告+LLM+OCR）；**M7（qss美化+打包补TLS插件）**。原系统功能对齐，**LLM 联网已实测跑通**。
+- **进行中/待办**：麒麟端实地验证（用户）；可选的进一步打磨。
 - **原则**：每推进一块就 `./docker/build.sh linux/amd64` 跑测试；按里程碑分提交。
+
+### M6-2 LLM 联网实测：✅ 跑通
+- 用户在 Windows exe 点「📄报告」→ DeepSeek(`deepseek-v4-pro`) 实时生成"智能分析报告"成功。
+- **根因修复**：原 Windows 包缺 **TLS 插件**(`plugins/tls/*.dll`)，致 Qt6Network 无法初始化 TLS、所有 HTTPS 失败。补 `qschannelbackend.dll`(Windows 原生 Schannel，无需 OpenSSL DLL) 后 HTTPS 通。
+
+### M7 — 收尾美化 + 打包补全（已完成）
+- `resources/style.qss` 全局暖棕主题（按钮/表头/表格/进度条/输入框）；main.cpp 磁盘 style.qss 优先(避开 Windows rcc 版本错配损坏资源) > 内嵌 `:/style.qss`。
+- `build-win.sh` 包补：Qt6Network.dll + Qt6PrintSupport.dll + **tls 插件目录** + style.qss。
+- `package.sh`(麒麟) 包补：tls 插件 + style.qss（HTTPS 在麒麟也需 tls 后端插件）。
+- 10 单测 amd64 全过；Windows 构建+运行通过。
 
 ### M6-2 — LLM 客户端 + 智能分析 + OCR（已完成）
 

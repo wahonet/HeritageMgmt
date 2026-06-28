@@ -67,12 +67,16 @@ MSYS_NO_PATHCONV=1 docker run --rm --platform linux/amd64 \
         [ -n "$PLUG" ] && {
             cp "$PLUG"/platforms/qwindows.dll "$DEST/platforms/" 2>/dev/null || true
             cp "$PLUG"/sqldrivers/qsqlite.dll "$DEST/sqldrivers/" 2>/dev/null || true
+            # TLS 后端插件：HTTPS 必需。qschannelbackend 用 Windows 原生 Schannel（无需 OpenSSL DLL）
+            mkdir -p "$DEST/tls"
+            cp "$PLUG"/tls/*.dll "$DEST/tls/" 2>/dev/null || true
         }
         # 默认配置随包(config/)：磁盘优先于内嵌资源。
         # （Windows 交叉编译用宿主 rcc 6.4 生成、目标运行时 6.7 读取，rcc 数据格式不一致
         #   会导致内嵌资源损坏→JSON 解析失败；故 Windows 包必须带磁盘 config/）
         mkdir -p "$DEST/config"
         cp /src/resources/config/*.json "$DEST/config/"
+        cp /src/resources/style.qss "$DEST/" 2>/dev/null || true
         echo ">> 打包完成：$DEST"
         ls -1 "$DEST" "$DEST/platforms" "$DEST/sqldrivers" "$DEST/config"
     '

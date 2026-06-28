@@ -57,16 +57,19 @@ MSYS_NO_PATHCONV=1 docker run --rm --platform "$PLATFORM" \
         if [ -n "$PLUG" ]; then
             cp -L "$PLUG"/platforms/*.so "$DEST/platforms/" 2>/dev/null || true
             cp -L "$PLUG"/sqldrivers/*.so "$DEST/sqldrivers/" 2>/dev/null || true
+            # TLS 后端插件：LLM(HTTPS) 必需
+            [ -d "$PLUG/tls" ] && { mkdir -p "$DEST/tls"; cp -L "$PLUG"/tls/*.so "$DEST/tls/" 2>/dev/null || true; }
             # wayland 平台（麒麟可能走 Wayland）
             [ -d "$PLUG/wayland-platforms" ] && cp -Lr "$PLUG"/wayland-platforms "$DEST/" 2>/dev/null || true
             [ -d "$PLUG/wayland-decoration-client" ] && cp -Lr "$PLUG"/wayland-decoration-client "$DEST/" 2>/dev/null || true
             [ -d "$PLUG/wayland-shell-integration" ] && cp -Lr "$PLUG"/wayland-shell-integration "$DEST/" 2>/dev/null || true
-            [ -d "$PLUG/platformthemes" ] && cp -L "$PLUG"/platformthemes/*.so "$DEST/platformthemes/" 2>/dev/null || mkdir -p "$DEST/platformthemes" && cp -L "$PLUG"/platformthemes/*.so "$DEST/platformthemes/" 2>/dev/null || true
+            [ -d "$PLUG/platformthemes" ] && { mkdir -p "$DEST/platformthemes"; cp -L "$PLUG"/platformthemes/*.so "$DEST/platformthemes/" 2>/dev/null || true; }
         fi
 
         # 默认配置随包(config/)：磁盘优先于内嵌资源，且便于现场覆盖（与 Windows 包一致）
         mkdir -p "$DEST/config"
         cp /src/resources/config/*.json "$DEST/config/"
+        cp /src/resources/style.qss "$DEST/" 2>/dev/null || true
 
         # 运行脚本
         cat > "$DEST/run.sh" <<"RUN"

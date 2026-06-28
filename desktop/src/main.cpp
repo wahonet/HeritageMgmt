@@ -25,6 +25,22 @@ int main(int argc, char* argv[]) {
     QApplication::setApplicationName(QStringLiteral("heritage-desktop"));
     QApplication::setOrganizationName(QStringLiteral("HeritageMgmt"));
 
+    // 全局样式（暖棕主题）：磁盘 exe 同级 style.qss 优先（Windows 交叉编译 rcc 版本错配
+    // 会损坏内嵌资源文本，故磁盘优先），否则用内嵌 :/style.qss
+    {
+        QString qss;
+        QFile disk(QCoreApplication::applicationDirPath() + QStringLiteral("/style.qss"));
+        if (disk.open(QIODevice::ReadOnly | QIODevice::Text))
+            qss = QString::fromUtf8(disk.readAll());
+        else {
+            QFile r(QStringLiteral(":/style.qss"));
+            if (r.open(QIODevice::ReadOnly | QIODevice::Text))
+                qss = QString::fromUtf8(r.readAll());
+        }
+        if (!qss.isEmpty())
+            app.setStyleSheet(qss);
+    }
+
     diag(QStringLiteral("START qt=%1 appDir=%2 cwd=%3 libPaths=%4 sqlDrivers=%5 QT_PLUGIN_PATH=%6")
              .arg(QString::fromLatin1(qVersion()),
                   QCoreApplication::applicationDirPath(),
