@@ -43,6 +43,18 @@ public:
     // 设置工程归档目录名。对应 Go SetProjectFolder。
     bool setFolder(qint64 id, const QString& folder);
 
+    // —— 回收站 ——
+    // 软删除（deleted=1）。对应 Go SoftDeleteProject。
+    bool softDelete(qint64 id);
+    // 取消软删除。对应 Go RestoreProjectRecord。
+    bool restore(qint64 id);
+    // 彻底删除工程及其文档记录。对应 Go PurgeProjectRecord。
+    bool purge(qint64 id);
+    // 列出回收站(已软删)工程。对应 Go ListRecycled。
+    QVector<RecycledProject> listRecycled();
+    // 某单位下未删工程 ID 列表。对应 Go ProjectIDsByUnit。
+    QVector<qint64> idsByUnit(qint64 unitId);
+
 private:
     QSqlDatabase db_;
 };

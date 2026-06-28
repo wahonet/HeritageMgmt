@@ -24,6 +24,9 @@ public:
     // 新建文物单位，返回新ID。对应 Go CreateUnit。
     qint64 createUnit(const QString& name, const QString& level, int sort);
 
+    // 删除单位及其下工程/文档的 DB 记录（文件需先移入回收站）。对应 Go DeleteUnitRecords。
+    void deleteRecords(qint64 unitId);
+
 private:
     QSqlDatabase db_;
 };

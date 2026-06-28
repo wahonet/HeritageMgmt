@@ -84,6 +84,16 @@ struct LogEntry {
     QString detail;
 };
 
+// 回收站中的工程（listRecycled 列表项）。对应 Go RecycledProject。
+struct RecycledProject {
+    qint64 id = 0;
+    QString name;
+    QString folder;
+    QString ptype;
+    QString status;
+    QString unitName;
+};
+
 } // namespace heritage
 
 #endif // HERITAGE_DOMAIN_TYPES_H

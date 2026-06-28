@@ -23,8 +23,12 @@ class DocumentRepo;
 class UnitRepo;
 class LogRepo;
 class DocumentService;
+class RecycleService;
 class ProjectDetailPanel;
 class DashboardView;
+class StatsView;
+class LogsView;
+class RecycleView;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -44,6 +48,12 @@ private slots:
     void onDeleteDocument(qint64 docId);
     void onAddProject();              // 新建工程向导
     void onEditProject();             // 编辑当前工程
+    void onStats();                   // 统计图表
+    void onLogs();                    // 操作日志
+    void onRecycleBin();              // 回收站
+    void onRecycleProject();          // 删除当前工程到回收站
+    void onRestoreRecycled(qint64 id);
+    void onPurgeRecycled(qint64 id);
 
 private:
     void buildUi();
@@ -57,6 +67,7 @@ private:
     std::unique_ptr<UnitRepo> units_;
     std::unique_ptr<LogRepo> logs_;
     std::unique_ptr<DocumentService> docSvc_;
+    std::unique_ptr<RecycleService> recycleSvc_;
     QHash<qint64, Project> projectsById_;
     qint64 currentPid_ = 0;
 
@@ -64,7 +75,14 @@ private:
     QStackedWidget* stack_ = nullptr;
     ProjectDetailPanel* detailPanel_ = nullptr;
     DashboardView* dashboardView_ = nullptr;
+    StatsView* statsView_ = nullptr;
+    LogsView* logsView_ = nullptr;
+    RecycleView* recycleView_ = nullptr;
     QPushButton* btnDashboard_ = nullptr;
+    QPushButton* btnStats_ = nullptr;
+    QPushButton* btnLogs_ = nullptr;
+    QPushButton* btnRecycle_ = nullptr;
+    QPushButton* btnDelete_ = nullptr;
     QPushButton* btnUpload_ = nullptr;
     QPushButton* btnAdd_ = nullptr;
     QPushButton* btnEdit_ = nullptr;

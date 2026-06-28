@@ -111,4 +111,66 @@ bool ProjectRepo::setFolder(qint64 id, const QString& folder) {
     return q.exec();
 }
 
+bool ProjectRepo::softDelete(qint64 id) {
+    QSqlQuery q(db_);
+    if (!q.prepare(QStringLiteral("UPDATE projects SET deleted=1 WHERE id=?")))
+        return false;
+    q.addBindValue(id);
+    return q.exec();
+}
+
+bool ProjectRepo::restore(qint64 id) {
+    QSqlQuery q(db_);
+    if (!q.prepare(QStringLiteral("UPDATE projects SET deleted=0 WHERE id=?")))
+        return false;
+    q.addBindValue(id);
+    return q.exec();
+}
+
+bool ProjectRepo::purge(qint64 id) {
+    QSqlQuery q(db_);
+    if (!q.prepare(QStringLiteral("DELETE FROM documents WHERE project_id=?")))
+        return false;
+    q.addBindValue(id);
+    if (!q.exec())
+        return false;
+    q.prepare(QStringLiteral("DELETE FROM projects WHERE id=?"));
+    q.addBindValue(id);
+    return q.exec();
+}
+
+QVector<RecycledProject> ProjectRepo::listRecycled() {
+    QVector<RecycledProject> out;
+    QSqlQuery q(db_);
+    if (!q.exec(QStringLiteral(
+            "SELECT p.id,p.name,p.folder,p.ptype,p.status,u.name FROM projects p "
+            "LEFT JOIN units u ON u.id=p.unit_id WHERE COALESCE(p.deleted,0)=1 ORDER BY p.id DESC")))
+        return out;
+    while (q.next()) {
+        RecycledProject r;
+        r.id = q.value(0).toLongLong();
+        r.name = q.value(1).toString();
+        r.folder = q.value(2).toString();
+        r.ptype = q.value(3).toString();
+        r.status = q.value(4).toString();
+        r.unitName = q.value(5).toString();
+        if (r.unitName.isEmpty())
+            r.unitName = QStringLiteral("(单位已删除)");
+        out.append(r);
+    }
+    return out;
+}
+
+QVector<qint64> ProjectRepo::idsByUnit(qint64 unitId) {
+    QVector<qint64> out;
+    QSqlQuery q(db_);
+    if (!q.prepare(QStringLiteral("SELECT id FROM projects WHERE unit_id=? AND COALESCE(deleted,0)=0")))
+        return out;
+    q.addBindValue(unitId);
+    if (q.exec())
+        while (q.next())
+            out.append(q.value(0).toLongLong());
+    return out;
+}
+
 } // namespace heritage

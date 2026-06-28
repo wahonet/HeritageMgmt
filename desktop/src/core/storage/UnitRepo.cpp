@@ -46,4 +46,18 @@ qint64 UnitRepo::createUnit(const QString& name, const QString& level, int sort)
     return q.lastInsertId().toLongLong();
 }
 
+void UnitRepo::deleteRecords(qint64 unitId) {
+    QSqlQuery q(db_);
+    q.prepare(QStringLiteral("DELETE FROM documents WHERE project_id IN "
+                             "(SELECT id FROM projects WHERE unit_id=?)"));
+    q.addBindValue(unitId);
+    q.exec();
+    q.prepare(QStringLiteral("DELETE FROM projects WHERE unit_id=?"));
+    q.addBindValue(unitId);
+    q.exec();
+    q.prepare(QStringLiteral("DELETE FROM units WHERE id=?"));
+    q.addBindValue(unitId);
+    q.exec();
+}
+
 } // namespace heritage

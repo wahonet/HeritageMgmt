@@ -52,9 +52,20 @@
 
 ## 4. 当前状态与下一步
 
-- **已完成**：M1（地基+三端）；M2-core（业务逻辑+单测）；M2-UI（工程详情分析+看板）；M3（上传+预览+删除）；M4a（编辑+新建工程向导）。
-- **进行中**：向「完全一致功能」推进。下一步：M4b 批量导入(需搬 excelimport——要解决 .xlsx 读取依赖)、统计图表(QtCharts)+日志+回收站(M5)、OCR+PDF+LLM(M6)。
+- **已完成**：M1（地基+三端）；M2-core（业务逻辑+单测）；M2-UI（工程详情分析+看板）；M3（上传+预览+删除）；M4a（编辑+新建向导）；**M5（统计图表+日志+回收站）**。
+- **进行中**：向「完全一致功能」推进。下一步：M4b 批量导入(需搬 excelimport——解决 .xlsx 读取依赖)、M6 OCR+PDF+LLM、M7 收尾。
 - **原则**：每推进一块就 `./docker/build.sh linux/amd64` 跑测试；按里程碑分提交。
+
+### M5 — 统计图表 + 日志 + 回收站（已完成）
+
+- **回收站**：`core/recycle/RecycleService`（recycleProject/restoreProject/purgeProject/deleteUnitCascade，对应 Go recycle_service）；`ProjectRepo` 补 softDelete/restore/purge/listRecycled/idsByUnit；`UnitRepo` 补 deleteRecords；新增 `RecycledProject` 类型。`ui/views/RecycleView`（表格 + 恢复/彻底删除）。
+- **日志**：`ui/views/LogsView`（LogRepo.list 表格：时间/操作/对象/明细）。
+- **统计图表**：`ui/views/StatsView`（StatsService.aggregate → 柱状图 资金按 单位/类型/年度 + 饼图 工程数按状态 + 汇总）。
+  - **自绘图表**（`ui/widgets/BarChartWidget` + `PieChartWidget`，QPainter）：**不依赖 QtCharts**（避免往 Linux/Kylin/Win-cross 三套构建链各加一个模块），偏离文档 §2.2 的选型但更稳。原前端即简单 SVG 柱/饼，自绘等价。
+- `MainWindow`：顶栏加 📈统计/📜日志/🗑回收站/✕删除；QStackedWidget 增 Stats/Logs/Recycle 视图(index 2/3/4)；✕删除=软删当前工程入回收站；RecycleView 的 恢复/彻底删除 信号接 RecycleService。
+- amd64 编译过 + 6 单测全过；Windows 构建+运行通过（统计图/日志表/回收站均渲染）。
+
+**本块踩坑**：无重大；种子前确认无残留 exe 占库（沿用）。
 
 ### M4a — 编辑工程 + 新建工程向导（已完成）
 

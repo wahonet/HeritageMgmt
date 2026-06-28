@@ -3,6 +3,8 @@
 #include "core/analysis/AnalysisService.h"
 #include "core/dashboard/DashboardService.h"
 #include "core/documents/DocumentService.h"
+#include "core/recycle/RecycleService.h"
+#include "core/stats/StatsService.h"
 #include "core/storage/DocumentRepo.h"
 #include "core/storage/LogRepo.h"
 #include "core/storage/ProjectRepo.h"
@@ -12,6 +14,9 @@
 #include "ui/dialogs/ProjectEditDialog.h"
 #include "ui/widgets/ProjectDetailPanel.h"
 #include "ui/views/DashboardView.h"
+#include "ui/views/StatsView.h"
+#include "ui/views/LogsView.h"
+#include "ui/views/RecycleView.h"
 
 #include <QDesktopServices>
 #include <QDir>
@@ -64,6 +69,7 @@ MainWindow::MainWindow(const AppConfig& cfg, QWidget* parent)
     units_ = std::make_unique<UnitRepo>(db_.connection());
     logs_ = std::make_unique<LogRepo>(db_.connection());
     docSvc_ = std::make_unique<DocumentService>(*projects_, *docs_, *logs_, cfg_);
+    recycleSvc_ = std::make_unique<RecycleService>(*projects_, *units_, *logs_, cfg_);
 
     buildUi();
     loadTree();
@@ -81,16 +87,24 @@ void MainWindow::buildUi() {
     tf.setBold(true);
     title->setFont(tf);
     btnDashboard_ = new QPushButton(QStringLiteral("📊 看板"), topBar);
+    btnStats_ = new QPushButton(QStringLiteral("📈 统计"), topBar);
+    btnLogs_ = new QPushButton(QStringLiteral("📜 日志"), topBar);
+    btnRecycle_ = new QPushButton(QStringLiteral("🗑 回收站"), topBar);
     btnUpload_ = new QPushButton(QStringLiteral("⬆ 上传"), topBar);
     btnAdd_ = new QPushButton(QStringLiteral("➕ 新建"), topBar);
     btnEdit_ = new QPushButton(QStringLiteral("✎ 编辑"), topBar);
+    btnDelete_ = new QPushButton(QStringLiteral("✕ 删除"), topBar);
     auto* btnRefresh = new QPushButton(QStringLiteral("刷新"), topBar);
     topLay->addWidget(title);
     topLay->addStretch(1);
     topLay->addWidget(btnDashboard_);
+    topLay->addWidget(btnStats_);
+    topLay->addWidget(btnLogs_);
+    topLay->addWidget(btnRecycle_);
     topLay->addWidget(btnAdd_);
     topLay->addWidget(btnEdit_);
     topLay->addWidget(btnUpload_);
+    topLay->addWidget(btnDelete_);
     topLay->addWidget(btnRefresh);
 
     // 左侧树
@@ -102,12 +116,18 @@ void MainWindow::buildUi() {
     tree_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     leftLay->addWidget(tree_, 1);
 
-    // 右侧视图栈：详情(0) / 看板(1)
+    // 右侧视图栈：详情(0) / 看板(1) / 统计(2) / 日志(3) / 回收站(4)
     stack_ = new QStackedWidget(this);
     detailPanel_ = new ProjectDetailPanel(stack_);
     dashboardView_ = new DashboardView(stack_);
-    stack_->addWidget(detailPanel_);   // index 0
-    stack_->addWidget(dashboardView_); // index 1
+    statsView_ = new StatsView(stack_);
+    logsView_ = new LogsView(stack_);
+    recycleView_ = new RecycleView(stack_);
+    stack_->addWidget(detailPanel_);   // 0
+    stack_->addWidget(dashboardView_); // 1
+    stack_->addWidget(statsView_);     // 2
+    stack_->addWidget(logsView_);      // 3
+    stack_->addWidget(recycleView_);   // 4
 
     auto* split = new QSplitter(Qt::Horizontal, this);
     split->addWidget(leftHost);
@@ -126,10 +146,16 @@ void MainWindow::buildUi() {
 
     connect(btnRefresh, &QPushButton::clicked, this, &MainWindow::refresh);
     connect(btnDashboard_, &QPushButton::clicked, this, &MainWindow::showDashboard);
+    connect(btnStats_, &QPushButton::clicked, this, &MainWindow::onStats);
+    connect(btnLogs_, &QPushButton::clicked, this, &MainWindow::onLogs);
+    connect(btnRecycle_, &QPushButton::clicked, this, &MainWindow::onRecycleBin);
     connect(btnUpload_, &QPushButton::clicked, this, &MainWindow::onUpload);
     connect(btnAdd_, &QPushButton::clicked, this, &MainWindow::onAddProject);
     connect(btnEdit_, &QPushButton::clicked, this, &MainWindow::onEditProject);
+    connect(btnDelete_, &QPushButton::clicked, this, &MainWindow::onRecycleProject);
     connect(tree_, &QTreeWidget::currentItemChanged, this, &MainWindow::onCurrentChanged);
+    connect(recycleView_, &RecycleView::restoreRequested, this, &MainWindow::onRestoreRecycled);
+    connect(recycleView_, &RecycleView::purgeRequested, this, &MainWindow::onPurgeRecycled);
     connect(detailPanel_, &ProjectDetailPanel::uploadRequested, this, &MainWindow::onUpload);
     connect(detailPanel_, &ProjectDetailPanel::openDocument, this, &MainWindow::onOpenDocument);
     connect(detailPanel_, &ProjectDetailPanel::deleteDocument, this, &MainWindow::onDeleteDocument);
@@ -314,6 +340,62 @@ void MainWindow::onEditProject() {
     statusBar()->showMessage(QStringLiteral("已更新工程#%1").arg(currentPid_), 5000);
     loadTree();
     showProject(currentPid_);
+}
+
+void MainWindow::onStats() {
+    StatsService svc(*projects_, *units_);
+    statsView_->showStats(svc.aggregate());
+    stack_->setCurrentIndex(2);
+}
+
+void MainWindow::onLogs() {
+    logsView_->showLogs(logs_->list(500));
+    stack_->setCurrentIndex(3);
+}
+
+void MainWindow::onRecycleBin() {
+    recycleView_->showRecycled(projects_->listRecycled());
+    stack_->setCurrentIndex(4);
+}
+
+void MainWindow::onRecycleProject() {
+    if (currentPid_ <= 0) {
+        QMessageBox::information(this, QStringLiteral("删除"), QStringLiteral("请先在左侧选择一个工程。"));
+        return;
+    }
+    const auto proj = projects_->get(currentPid_);
+    if (!proj)
+        return;
+    const auto ret = QMessageBox::question(this, QStringLiteral("删除工程"),
+        QStringLiteral("将「%1」移入回收站？（文件保留，可恢复）").arg(proj->name));
+    if (ret != QMessageBox::Yes)
+        return;
+    if (!recycleSvc_->recycleProject(*proj)) {
+        QMessageBox::warning(this, QStringLiteral("删除"), QStringLiteral("删除失败。"));
+        return;
+    }
+    currentPid_ = 0;
+    detailPanel_->clear();
+    loadTree();
+}
+
+void MainWindow::onRestoreRecycled(qint64 id) {
+    for (const RecycledProject& r : projects_->listRecycled())
+        if (r.id == id) {
+            recycleSvc_->restoreProject(r);
+            recycleView_->showRecycled(projects_->listRecycled());
+            loadTree();
+            return;
+        }
+}
+
+void MainWindow::onPurgeRecycled(qint64 id) {
+    for (const RecycledProject& r : projects_->listRecycled())
+        if (r.id == id) {
+            recycleSvc_->purgeProject(r);
+            recycleView_->showRecycled(projects_->listRecycled());
+            return;
+        }
 }
 
 } // namespace heritage

@@ -29,6 +29,7 @@ add_library(heritage_core STATIC
     src/core/stats/StatsService.cpp
     src/core/dashboard/DashboardService.cpp
     src/core/documents/DocumentService.cpp
+    src/core/recycle/RecycleService.cpp
 )
 target_include_directories(heritage_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(heritage_core PUBLIC
@@ -42,8 +43,18 @@ add_executable(heritage-desktop
     src/ui/MainWindow.cpp
     src/ui/widgets/ProjectDetailPanel.h
     src/ui/widgets/ProjectDetailPanel.cpp
+    src/ui/widgets/BarChartWidget.h
+    src/ui/widgets/BarChartWidget.cpp
+    src/ui/widgets/PieChartWidget.h
+    src/ui/widgets/PieChartWidget.cpp
     src/ui/views/DashboardView.h
     src/ui/views/DashboardView.cpp
+    src/ui/views/StatsView.h
+    src/ui/views/StatsView.cpp
+    src/ui/views/LogsView.h
+    src/ui/views/LogsView.cpp
+    src/ui/views/RecycleView.h
+    src/ui/views/RecycleView.cpp
     src/ui/dialogs/UploadDialog.h
     src/ui/dialogs/UploadDialog.cpp
     src/ui/dialogs/CreateProjectDialog.h
