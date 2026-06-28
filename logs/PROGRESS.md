@@ -52,9 +52,18 @@
 
 ## 4. 当前状态与下一步
 
-- **已完成**：M1（地基+三端）；M2-core（业务逻辑+单测）；M2-UI（工程详情分析+看板）；M3（上传+预览+删除）；M4a（编辑+新建向导）；**M5（统计图表+日志+回收站）**。
-- **进行中**：向「完全一致功能」推进。下一步：M4b 批量导入(需搬 excelimport——解决 .xlsx 读取依赖)、M6 OCR+PDF+LLM、M7 收尾。
+- **已完成**：M1（地基+三端）；M2（业务逻辑+详情看板）；M3（上传+预览）；M4a（编辑+向导）；M5（统计+日志+回收站）；**M4b（批量导入：xlsx 读取 + ImportService + 导入 UI）**。
+- **进行中**：向「完全一致功能」推进。下一步：M6 OCR+PDF报告+LLM、M7 收尾。
 - **原则**：每推进一块就 `./docker/build.sh linux/amd64` 跑测试；按里程碑分提交。
+
+### M4b-2 — 批量导入编排 + 导入 UI（已完成）
+
+- `core/storage/Schema::resetTables`（事务内清空 documents/projects/units + 重置自增，搬 Go ResetTables）。
+- `core/import/ImportService::importAll(dir)`：单事务 → resetTables → 遍历 basicdata 子目录 → cleanProjectName/DetectUnit/DetectType/ParseSeq → 单位缓存入库 → MatchFinancial → 插工程(22 字段，财务 FinGet/TrimDate/ParseFloat/DeriveStatus 全应用) → folder=P%04d → 复制归档文件 + ClassifyDoc + 插文档 → commit + 日志。对应 Go ImportAll。
+- `MainWindow`：顶栏「📥 导入」→ 选目录 → 确认(提示会清空) → ImportService.importAll → 结果消息框(单位/工程/文档/财务匹配) → 刷新。
+- `import_test`：构造临时 Basicdata(子目录+文件+sample.xlsx) → importAll → 验单位1/工程2/文档3/财务匹配2 + central_funding=350.5/status=在建 落库 + 文件已复制。**8 单测 amd64 全过**。
+
+**本块踩坑**：import_test 初版忘加载 `cfg.rules`，致 `deriveStatus` 无关键词→退回"前期"（应为"在建"）；加 `cfg.rules = loadRules(...)` 后通过。
 
 ### M5 — 统计图表 + 日志 + 回收站（已完成）
 

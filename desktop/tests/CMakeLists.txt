@@ -49,6 +49,17 @@ target_link_libraries(excel_test PRIVATE
 target_compile_definitions(excel_test PRIVATE HERITAGE_FIXTURE_DIR="${_fix_dir}")
 add_test(NAME excel_test COMMAND excel_test)
 
+# 批量导入集成单测：构造 Basicdata → ImportService.importAll → 验入库+财务
+add_executable(import_test ImportTest.cpp)
+target_link_libraries(import_test PRIVATE
+    heritage_core
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Sql)
+target_compile_definitions(import_test PRIVATE
+    HERITAGE_FIXTURE_DIR="${_fix_dir}"
+    HERITAGE_RESOURCE_DIR="${_res_dir}")
+add_test(NAME import_test COMMAND import_test)
+
 # config_test 同时链接 qrc，以验证“磁盘读不到 → 回退 :/config 资源”。
 add_executable(config_test ConfigTest.cpp ../resources/heritage.qrc)
 target_link_libraries(config_test PRIVATE

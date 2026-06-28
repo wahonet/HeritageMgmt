@@ -88,4 +88,20 @@ bool migrate(QSqlDatabase db) {
     return true;
 }
 
+bool resetTables(QSqlDatabase db) {
+    static const char* kTables[] = {"documents", "projects", "units"};
+    QSqlQuery q(db);
+    for (const char* t : kTables) {
+        q.prepare(QStringLiteral("DELETE FROM ") + QString::fromLatin1(t));
+        if (!q.exec())
+            return false;
+    }
+    for (const char* t : kTables) {
+        q.prepare(QStringLiteral("DELETE FROM sqlite_sequence WHERE name=?"));
+        q.addBindValue(QString::fromLatin1(t));
+        q.exec(); // 无 sqlite_sequence 时忽略错误
+    }
+    return true;
+}
+
 } // namespace heritage::schema

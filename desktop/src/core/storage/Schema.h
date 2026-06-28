@@ -20,6 +20,10 @@ QStringList createStatements();
 // 幂等——用 PRAGMA table_info 检查已有列，只补缺失项。返回是否全部执行成功。
 bool migrate(QSqlDatabase db);
 
+// 清空 documents/projects/units 并重置自增序列（供批量导入在事务内调用）。
+// 对应 Go store.ResetTables。
+bool resetTables(QSqlDatabase db);
+
 // 获取 projects 表现有列名集合（PRAGMA table_info）。
 QStringList tableColumns(QSqlDatabase db, const QString& table);
 

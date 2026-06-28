@@ -5,6 +5,7 @@
 #include "core/documents/DocumentService.h"
 #include "core/recycle/RecycleService.h"
 #include "core/stats/StatsService.h"
+#include "core/import/ImportService.h"
 #include "core/storage/DocumentRepo.h"
 #include "core/storage/LogRepo.h"
 #include "core/storage/ProjectRepo.h"
@@ -20,6 +21,7 @@
 
 #include <QDesktopServices>
 #include <QDir>
+#include <QFileDialog>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QFont>
@@ -94,6 +96,7 @@ void MainWindow::buildUi() {
     btnAdd_ = new QPushButton(QStringLiteral("➕ 新建"), topBar);
     btnEdit_ = new QPushButton(QStringLiteral("✎ 编辑"), topBar);
     btnDelete_ = new QPushButton(QStringLiteral("✕ 删除"), topBar);
+    btnImport_ = new QPushButton(QStringLiteral("📥 导入"), topBar);
     auto* btnRefresh = new QPushButton(QStringLiteral("刷新"), topBar);
     topLay->addWidget(title);
     topLay->addStretch(1);
@@ -105,6 +108,7 @@ void MainWindow::buildUi() {
     topLay->addWidget(btnEdit_);
     topLay->addWidget(btnUpload_);
     topLay->addWidget(btnDelete_);
+    topLay->addWidget(btnImport_);
     topLay->addWidget(btnRefresh);
 
     // 左侧树
@@ -153,6 +157,7 @@ void MainWindow::buildUi() {
     connect(btnAdd_, &QPushButton::clicked, this, &MainWindow::onAddProject);
     connect(btnEdit_, &QPushButton::clicked, this, &MainWindow::onEditProject);
     connect(btnDelete_, &QPushButton::clicked, this, &MainWindow::onRecycleProject);
+    connect(btnImport_, &QPushButton::clicked, this, &MainWindow::onImport);
     connect(tree_, &QTreeWidget::currentItemChanged, this, &MainWindow::onCurrentChanged);
     connect(recycleView_, &RecycleView::restoreRequested, this, &MainWindow::onRestoreRecycled);
     connect(recycleView_, &RecycleView::purgeRequested, this, &MainWindow::onPurgeRecycled);
@@ -396,6 +401,34 @@ void MainWindow::onPurgeRecycled(qint64 id) {
             recycleView_->showRecycled(projects_->listRecycled());
             return;
         }
+}
+
+void MainWindow::onImport() {
+    const QString dir = QFileDialog::getExistingDirectory(
+        this, QStringLiteral("选择 Basicdata 根目录（其下每个子目录为一个工程）"), QString());
+    if (dir.isEmpty())
+        return;
+    const auto ret = QMessageBox::question(
+        this, QStringLiteral("批量导入"),
+        QStringLiteral("将从目录：\n%1\n\n导入全部数据。\n【注意】会先清空当前所有工程/单位/文档再导入，"
+                       "且不可撤销。继续？").arg(dir));
+    if (ret != QMessageBox::Yes)
+        return;
+
+    setEnabled(false);
+    ImportService imp(db_.connection(), cfg_, *logs_);
+    const ImportStats st = imp.importAll(dir);
+    setEnabled(true);
+
+    if (!imp.lastError().isEmpty()) {
+        QMessageBox::warning(this, QStringLiteral("导入失败"), imp.lastError());
+    } else {
+        QMessageBox::information(this, QStringLiteral("导入完成"),
+            QStringLiteral("单位 %1 / 工程 %2 / 文档 %3 / 财务匹配 %4")
+                .arg(st.units).arg(st.projects).arg(st.docs).arg(st.matched));
+    }
+    loadTree();
+    detailPanel_->clear();
 }
 
 } // namespace heritage

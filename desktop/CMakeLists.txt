@@ -34,6 +34,7 @@ add_library(heritage_core STATIC
     src/core/excelimport/ZipReader.cpp
     src/core/excelimport/XlsxReader.cpp
     src/core/excelimport/ExcelImport.cpp
+    src/core/import/ImportService.cpp
 )
 target_include_directories(heritage_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(heritage_core PUBLIC
