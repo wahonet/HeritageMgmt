@@ -2,11 +2,30 @@
 
 #include "core/analysis/AnalysisService.h"
 #include "core/dashboard/DashboardService.h"
+#include "core/documents/DocumentService.h"
 #include "core/storage/DocumentRepo.h"
+#include "core/storage/LogRepo.h"
 #include "core/storage/ProjectRepo.h"
 #include "core/storage/UnitRepo.h"
+#include "ui/dialogs/UploadDialog.h"
 #include "ui/widgets/ProjectDetailPanel.h"
 #include "ui/views/DashboardView.h"
+
+#include <QDesktopServices>
+#include <QHBoxLayout>
+#include <QHeaderView>
+#include <QFont>
+#include <QLabel>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QSplitter>
+#include <QStackedWidget>
+#include <QStatusBar>
+#include <QTreeWidget>
+#include <QTreeWidgetItem>
+#include <QUrl>
+#include <QVBoxLayout>
+#include <QWidget>
 
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -39,6 +58,8 @@ MainWindow::MainWindow(const AppConfig& cfg, QWidget* parent)
     projects_ = std::make_unique<ProjectRepo>(db_.connection());
     docs_ = std::make_unique<DocumentRepo>(db_.connection());
     units_ = std::make_unique<UnitRepo>(db_.connection());
+    logs_ = std::make_unique<LogRepo>(db_.connection());
+    docSvc_ = std::make_unique<DocumentService>(*projects_, *docs_, *logs_, cfg_);
 
     buildUi();
     loadTree();
@@ -56,10 +77,12 @@ void MainWindow::buildUi() {
     tf.setBold(true);
     title->setFont(tf);
     btnDashboard_ = new QPushButton(QStringLiteral("📊 看板"), topBar);
+    btnUpload_ = new QPushButton(QStringLiteral("⬆ 上传"), topBar);
     auto* btnRefresh = new QPushButton(QStringLiteral("刷新"), topBar);
     topLay->addWidget(title);
     topLay->addStretch(1);
     topLay->addWidget(btnDashboard_);
+    topLay->addWidget(btnUpload_);
     topLay->addWidget(btnRefresh);
 
     // 左侧树
@@ -95,7 +118,11 @@ void MainWindow::buildUi() {
 
     connect(btnRefresh, &QPushButton::clicked, this, &MainWindow::refresh);
     connect(btnDashboard_, &QPushButton::clicked, this, &MainWindow::showDashboard);
+    connect(btnUpload_, &QPushButton::clicked, this, &MainWindow::onUpload);
     connect(tree_, &QTreeWidget::currentItemChanged, this, &MainWindow::onCurrentChanged);
+    connect(detailPanel_, &ProjectDetailPanel::uploadRequested, this, &MainWindow::onUpload);
+    connect(detailPanel_, &ProjectDetailPanel::openDocument, this, &MainWindow::onOpenDocument);
+    connect(detailPanel_, &ProjectDetailPanel::deleteDocument, this, &MainWindow::onDeleteDocument);
 }
 
 void MainWindow::loadTree() {
@@ -142,6 +169,7 @@ void MainWindow::onCurrentChanged() {
 }
 
 void MainWindow::showProject(qint64 projectId) {
+    currentPid_ = projectId;
     AnalysisService svc(*projects_, *docs_, *units_, cfg_);
     const auto d = svc.analyze(projectId);
     if (!d)
@@ -154,6 +182,48 @@ void MainWindow::showDashboard() {
     DashboardService svc(*projects_, *docs_, *units_, cfg_);
     dashboardView_->showDashboard(svc.dashboard());
     stack_->setCurrentIndex(1);
+}
+
+void MainWindow::onUpload() {
+    if (currentPid_ <= 0) {
+        QMessageBox::information(this, QStringLiteral("上传"), QStringLiteral("请先在左侧选择一个工程。"));
+        return;
+    }
+    UploadDialog dlg(cfg_.docCfg.types, currentPid_, projects_->name(currentPid_), this);
+    if (dlg.exec() != QDialog::Accepted)
+        return;
+    const QString type = dlg.docType();
+    const QStringList files = dlg.files();
+    if (type.isEmpty() || files.isEmpty()) {
+        QMessageBox::information(this, QStringLiteral("上传"), QStringLiteral("请选择分类与文件。"));
+        return;
+    }
+    const int n = docSvc_->uploadFiles(currentPid_, type, files);
+    statusBar()->showMessage(QStringLiteral("已上传 %1 个文件").arg(n), 5000);
+    loadTree();
+    showProject(currentPid_);
+}
+
+void MainWindow::onOpenDocument(qint64 docId) {
+    const auto doc = docs_->byId(docId);
+    if (!doc)
+        return;
+    const QString path = docSvc_->fullPath(*doc);
+    if (!QDesktopServices::openUrl(QUrl::fromLocalFile(path)))
+        QMessageBox::warning(this, QStringLiteral("打开失败"), QStringLiteral("无法打开：") + path);
+}
+
+void MainWindow::onDeleteDocument(qint64 docId) {
+    const auto doc = docs_->byId(docId);
+    if (!doc)
+        return;
+    const auto ret = QMessageBox::question(this, QStringLiteral("删除文档"),
+        QStringLiteral("确定删除「%1」？").arg(doc->origName));
+    if (ret != QMessageBox::Yes)
+        return;
+    docSvc_->deleteDocument(docId);
+    loadTree();
+    showProject(currentPid_);
 }
 
 } // namespace heritage

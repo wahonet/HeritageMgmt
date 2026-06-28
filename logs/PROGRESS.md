@@ -52,9 +52,20 @@
 
 ## 4. 当前状态与下一步
 
-- **已完成**：M1（地基 + 三端验证）；M2-core（业务逻辑层 + 单测）；M2-UI（工程详情分析 + 看板视图）。
-- **进行中**：向「与原系统完全一致功能」推进。下一步：上传+预览(M3)、编辑+新建向导+批量导入(M4，需搬 excelimport)、统计图表+日志+回收站(M5)、OCR+PDF+LLM(M6)。
+- **已完成**：M1（地基+三端）；M2-core（业务逻辑+单测）；M2-UI（工程详情分析+看板）；M3（上传+文件预览+删除）。
+- **进行中**：向「完全一致功能」推进。下一步：编辑+新建向导+批量导入(M4，需搬 excelimport)、统计图表(QtCharts)+日志+回收站(M5)、OCR+PDF+LLM(M6)。
 - **原则**：每推进一块就 `./docker/build.sh linux/amd64` 跑测试；按里程碑分提交。
+
+### M3 — 上传 + 文件预览 + 删除（已完成）
+
+- `core/storage/LogRepo`（insert/list，搬 Go log_repo）；`DocumentRepo` 补 byId/insert/remove/removeByType。
+- `core/documents/DocumentService`：uploadFiles(复制进归档目录、重名追加 _HHmmss、插记录、记日志)/deleteDocument/deleteDocType/fullPath。对应 Go document_handlers。
+- `ui/dialogs/UploadDialog`：选分类(QComboBox) + 选文件(QFileDialog)。
+- `ProjectDetailPanel` 增「档案文件」区(QListWidget + 上传/打开/删除)，发 openDocument/deleteDocument/uploadRequested 信号；双击=打开。
+- `MainWindow`：持有 DocumentService/LogRepo；顶栏加「⬆ 上传」；连信号 → 打开(QDesktopServices::openUrl)/删除(确认)/上传(对话框)。上传/删除后自动刷新树+详情。
+- 新增 `document_test`（上传复制+插记录+日志、重名、删单文档、删分类）；**6 单测 amd64 全过**；Windows 构建+运行通过（档案文件区显示文档、上传/打开/删除按钮就绪）。
+
+**本块踩坑**：无重大；沿用既有（unique_ptr 析构放 .cpp、强杀后清 -shm/-wal）。
 
 ### M2-UI — 工程详情分析 + 看板视图（已完成）
 

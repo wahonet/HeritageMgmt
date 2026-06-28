@@ -5,8 +5,12 @@
 #include <QFont>
 #include <QFormLayout>
 #include <QGroupBox>
+#include <QHBoxLayout>
 #include <QLabel>
+#include <QListWidget>
+#include <QListWidgetItem>
 #include <QProgressBar>
+#include <QPushButton>
 #include <QScrollArea>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -94,9 +98,41 @@ void ProjectDetailPanel::buildUi() {
     stagesHost_->setLayout(stagesLay_);
     lay->addWidget(boxStage);
 
+    // 档案文件（打开/删除/上传）
+    auto* boxFiles = new QGroupBox(QStringLiteral("档案文件"), host);
+    auto* filesLay = new QVBoxLayout(boxFiles);
+    auto* btnRow = new QHBoxLayout();
+    auto* btnUpload = new QPushButton(QStringLiteral("⬆ 上传"), boxFiles);
+    auto* btnOpen = new QPushButton(QStringLiteral("打开"), boxFiles);
+    auto* btnDel = new QPushButton(QStringLiteral("删除"), boxFiles);
+    btnRow->addWidget(btnUpload);
+    btnRow->addWidget(btnOpen);
+    btnRow->addWidget(btnDel);
+    btnRow->addStretch(1);
+    filesLay->addLayout(btnRow);
+    filesList_ = new QListWidget(boxFiles);
+    filesList_->setMinimumHeight(120);
+    filesLay->addWidget(filesList_);
+    lay->addWidget(boxFiles);
+
+    connect(btnUpload, &QPushButton::clicked, this, &ProjectDetailPanel::uploadRequested);
+    connect(btnOpen, &QPushButton::clicked, this, &ProjectDetailPanel::onOpenClicked);
+    connect(btnDel, &QPushButton::clicked, this, &ProjectDetailPanel::onDeleteClicked);
+    connect(filesList_, &QListWidget::itemDoubleClicked, this, &ProjectDetailPanel::onOpenClicked);
+
     lay->addStretch(1);
     scroll->setWidget(host);
     outer->addWidget(scroll);
+}
+
+void ProjectDetailPanel::onOpenClicked() {
+    if (auto* it = filesList_->currentItem())
+        emit openDocument(it->data(Qt::UserRole).toLongLong());
+}
+
+void ProjectDetailPanel::onDeleteClicked() {
+    if (auto* it = filesList_->currentItem())
+        emit deleteDocument(it->data(Qt::UserRole).toLongLong());
 }
 
 void ProjectDetailPanel::setRowColor(QLabel* lbl, const QString& color) {
@@ -114,6 +150,7 @@ static void setTextOrHide(QLabel* lbl, const QString& prefix, const QStringList&
 
 void ProjectDetailPanel::showDetail(const ProjectDetail& d) {
     const Project& p = d.project;
+    currentPid_ = p.id;
     title_->setText(p.name);
     lblUnit_->setText(d.unitLevel.isEmpty() ? p.unitName : (p.unitName + QStringLiteral("（") + d.unitLevel + QStringLiteral("）")));
     lblType_->setText(dash(p.ptype));
@@ -149,15 +186,28 @@ void ProjectDetailPanel::showDetail(const ProjectDetail& d) {
         row->setStyleSheet(QStringLiteral("color: %1;").arg(color));
         stagesLay_->addWidget(row);
     }
+
+    // 档案文件清单
+    filesList_->clear();
+    for (const Document& doc : d.documents) {
+        auto* it = new QListWidgetItem(
+            QStringLiteral("【%1】%2").arg(doc.docTypeName.isEmpty() ? doc.docType : doc.docTypeName,
+                                           doc.origName.isEmpty() ? doc.title : doc.origName),
+            filesList_);
+        it->setData(Qt::UserRole, doc.id);
+    }
 }
 
 void ProjectDetailPanel::clear() {
     title_->setText(QStringLiteral("选择左侧工程查看详情"));
+    currentPid_ = 0;
     for (auto* l : {lblUnit_, lblType_, lblStatus_, lblApproval_, lblDates_, lblFunding_,
                     lblMissing_, lblMissingOpt_, lblQual_})
         l->setText(QString());
     completeness_->setValue(0);
     lblCompleteness_->setText(QString());
+    if (filesList_)
+        filesList_->clear();
     QLayoutItem* child;
     while ((child = stagesLay_->takeAt(0)) != nullptr) {
         delete child->widget();

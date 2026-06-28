@@ -9,6 +9,7 @@
 #include <QWidget>
 
 class QLabel;
+class QListWidget;
 class QProgressBar;
 class QVBoxLayout;
 class QFormLayout;
@@ -23,6 +24,15 @@ public:
 public slots:
     void showDetail(const ProjectDetail& d);
     void clear();
+
+signals:
+    void openDocument(qint64 docId);   // 双击/点"打开"：请求系统打开
+    void deleteDocument(qint64 docId); // 删除单个文档
+    void uploadRequested();            // 上传到当前工程
+
+private slots:
+    void onOpenClicked();
+    void onDeleteClicked();
 
 private:
     void buildUi();
@@ -42,6 +52,9 @@ private:
     QLabel* lblQual_ = nullptr;
     QWidget* stagesHost_ = nullptr;
     QVBoxLayout* stagesLay_ = nullptr;
+
+    QListWidget* filesList_ = nullptr;
+    qint64 currentPid_ = 0;
 };
 
 } // namespace heritage

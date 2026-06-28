@@ -21,12 +21,14 @@ add_library(heritage_core STATIC
     src/core/storage/UnitRepo.cpp
     src/core/storage/ProjectRepo.cpp
     src/core/storage/DocumentRepo.cpp
+    src/core/storage/LogRepo.cpp
     src/core/config/ConfigLoader.cpp
     src/core/config/AppConfig.cpp
     src/core/classify/Classify.cpp
     src/core/analysis/AnalysisService.cpp
     src/core/stats/StatsService.cpp
     src/core/dashboard/DashboardService.cpp
+    src/core/documents/DocumentService.cpp
 )
 target_include_directories(heritage_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(heritage_core PUBLIC
@@ -42,6 +44,8 @@ add_executable(heritage-desktop
     src/ui/widgets/ProjectDetailPanel.cpp
     src/ui/views/DashboardView.h
     src/ui/views/DashboardView.cpp
+    src/ui/dialogs/UploadDialog.h
+    src/ui/dialogs/UploadDialog.cpp
     resources/heritage.qrc
 )
 # Windows(mingw) 交叉编译链接兜底：rcc 生成代码引用的 qResourceFeatureZstd() 在

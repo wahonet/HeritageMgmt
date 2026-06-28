@@ -21,6 +21,8 @@ namespace heritage {
 class ProjectRepo;
 class DocumentRepo;
 class UnitRepo;
+class LogRepo;
+class DocumentService;
 class ProjectDetailPanel;
 class DashboardView;
 
@@ -37,6 +39,9 @@ private slots:
     void refresh();
     void onCurrentChanged();
     void showDashboard();
+    void onUpload();                  // 上传到当前工程
+    void onOpenDocument(qint64 docId);
+    void onDeleteDocument(qint64 docId);
 
 private:
     void buildUi();
@@ -48,13 +53,17 @@ private:
     std::unique_ptr<ProjectRepo> projects_;
     std::unique_ptr<DocumentRepo> docs_;
     std::unique_ptr<UnitRepo> units_;
+    std::unique_ptr<LogRepo> logs_;
+    std::unique_ptr<DocumentService> docSvc_;
     QHash<qint64, Project> projectsById_;
+    qint64 currentPid_ = 0;
 
     QTreeWidget* tree_ = nullptr;
     QStackedWidget* stack_ = nullptr;
     ProjectDetailPanel* detailPanel_ = nullptr;
     DashboardView* dashboardView_ = nullptr;
     QPushButton* btnDashboard_ = nullptr;
+    QPushButton* btnUpload_ = nullptr;
 };
 
 } // namespace heritage

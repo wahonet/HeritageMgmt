@@ -31,6 +31,15 @@ target_link_libraries(stats_test PRIVATE
     Qt${QT_VERSION_MAJOR}::Sql)
 add_test(NAME stats_test COMMAND stats_test)
 
+# 文档服务单测：上传(复制+插记录+日志)/删除单文档/删除分类
+add_executable(document_test DocumentTest.cpp)
+target_link_libraries(document_test PRIVATE
+    heritage_core
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Sql)
+target_compile_definitions(document_test PRIVATE HERITAGE_RESOURCE_DIR="${_res_dir}")
+add_test(NAME document_test COMMAND document_test)
+
 # config_test 同时链接 qrc，以验证“磁盘读不到 → 回退 :/config 资源”。
 add_executable(config_test ConfigTest.cpp ../resources/heritage.qrc)
 target_link_libraries(config_test PRIVATE
