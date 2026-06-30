@@ -13,8 +13,13 @@ func (s *Store) ListUnits() ([]domain.Unit, error) {
 	var out []domain.Unit
 	for rows.Next() {
 		var u domain.Unit
-		rows.Scan(&u.ID, &u.Name, &u.Level, &u.Category, &u.Sort)
+		if err := rows.Scan(&u.ID, &u.Name, &u.Level, &u.Category, &u.Sort); err != nil {
+			return nil, err
+		}
 		out = append(out, u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -33,9 +38,9 @@ func (s *Store) UnitName(unitID int64) string {
 
 // UnitStats 查某单位的工程数/文档数/中央指标合计
 func (s *Store) UnitStats(unitID int64) (projCount, docCount int, funding float64) {
-	s.db.QueryRow("SELECT COUNT(*) FROM projects WHERE unit_id=?", unitID).Scan(&projCount)
-	s.db.QueryRow("SELECT COUNT(*) FROM documents d JOIN projects p ON p.id=d.project_id WHERE p.unit_id=?", unitID).Scan(&docCount)
-	s.db.QueryRow("SELECT COALESCE(SUM(central_funding),0) FROM projects WHERE unit_id=?", unitID).Scan(&funding)
+	s.db.QueryRow("SELECT COUNT(*) FROM projects WHERE unit_id=? AND COALESCE(deleted,0)=0", unitID).Scan(&projCount)
+	s.db.QueryRow("SELECT COUNT(*) FROM documents d JOIN projects p ON p.id=d.project_id WHERE p.unit_id=? AND COALESCE(p.deleted,0)=0", unitID).Scan(&docCount)
+	s.db.QueryRow("SELECT COALESCE(SUM(central_funding),0) FROM projects WHERE unit_id=? AND COALESCE(deleted,0)=0", unitID).Scan(&funding)
 	return
 }
 
@@ -48,9 +53,8 @@ func (s *Store) CreateUnit(name, level string, sort int) (int64, error) {
 	return res.LastInsertId()
 }
 
-// DeleteUnitRecords 删除单位及其下工程/文档的DB记录（文件需先另行移入回收站）
-func (s *Store) DeleteUnitRecords(uid int64) {
-	s.db.Exec("DELETE FROM documents WHERE project_id IN (SELECT id FROM projects WHERE unit_id=?)", uid)
-	s.db.Exec("DELETE FROM projects WHERE unit_id=?", uid)
-	s.db.Exec("DELETE FROM units WHERE id=?", uid)
+// DeleteUnit 删除单位记录（其下工程须已软删入回收站，故此处不连带删 projects/documents）。
+func (s *Store) DeleteUnit(uid int64) error {
+	_, err := s.db.Exec("DELETE FROM units WHERE id=?", uid)
+	return err
 }

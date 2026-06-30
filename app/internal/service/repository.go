@@ -30,7 +30,7 @@ type UnitRepository interface {
 	UnitName(unitID int64) string
 	UnitStats(unitID int64) (projCount, docCount int, funding float64)
 	CreateUnit(name, level string, sort int) (int64, error)
-	DeleteUnitRecords(uid int64)
+	DeleteUnit(uid int64) error
 }
 
 // DocumentRepository 文档聚合的仓储端口。

@@ -13,9 +13,14 @@ func (s *Store) ListDocuments(projectID int64) ([]domain.Document, error) {
 	var out []domain.Document
 	for rows.Next() {
 		var d domain.Document
-		rows.Scan(&d.ID, &d.ProjectID, &d.DocType, &d.DocTypeName, &d.Title, &d.OrigName,
-			&d.FilePath, &d.FileExt, &d.FileSize, &d.Uploaded, &d.Source)
+		if err := rows.Scan(&d.ID, &d.ProjectID, &d.DocType, &d.DocTypeName, &d.Title, &d.OrigName,
+			&d.FilePath, &d.FileExt, &d.FileSize, &d.Uploaded, &d.Source); err != nil {
+			return nil, err
+		}
 		out = append(out, d)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }

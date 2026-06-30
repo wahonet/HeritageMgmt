@@ -138,7 +138,9 @@ func (s *Store) ListRecycled() ([]domain.RecycledProject, error) {
 	for rows.Next() {
 		var it domain.RecycledProject
 		var folder, ptype, status, uname sql.NullString
-		rows.Scan(&it.ID, &it.Name, &folder, &ptype, &status, &uname)
+		if err := rows.Scan(&it.ID, &it.Name, &folder, &ptype, &status, &uname); err != nil {
+			return nil, err
+		}
 		it.Folder = folder.String
 		it.Ptype = ptype.String
 		it.Status = status.String
@@ -147,6 +149,9 @@ func (s *Store) ListRecycled() ([]domain.RecycledProject, error) {
 			it.UnitName = "(单位已删除)"
 		}
 		items = append(items, it)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return items, nil
 }

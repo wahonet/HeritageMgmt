@@ -26,7 +26,7 @@ func (s *Server) handleDeleteProject(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]interface{}{"ok": true})
 }
 
-// ---- 删除文物单位(连同工程一起放入回收站) ----
+// ---- 删除文物单位(其下工程软删入回收站，单位记录删除) ----
 func (s *Server) handleDeleteUnit(w http.ResponseWriter, r *http.Request) {
 	uid, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	name := s.units.UnitName(uid)
@@ -34,7 +34,11 @@ func (s *Server) handleDeleteUnit(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, "单位不存在")
 		return
 	}
-	projCount := s.recycle.DeleteUnitCascade(uid)
+	projCount, err := s.recycle.DeleteUnitCascade(uid)
+	if err != nil {
+		writeErr(w, err.Error())
+		return
+	}
 	detail := ""
 	if projCount > 0 {
 		detail = fmt.Sprintf("同时删除%d个工程(已放入回收站)", projCount)
@@ -60,7 +64,10 @@ func (s *Server) handleRestoreProject(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, "工程不存在")
 		return
 	}
-	s.recycle.RestoreProject(proj)
+	if err := s.recycle.RestoreProject(proj); err != nil {
+		writeErr(w, err.Error())
+		return
+	}
 	s.logs.InsertLog("恢复工程", fmt.Sprintf("工程#%d %s", pid, proj.Name), "从回收站恢复")
 	writeJSON(w, map[string]interface{}{"ok": true})
 }
@@ -73,7 +80,10 @@ func (s *Server) handlePurgeProject(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, "工程不存在")
 		return
 	}
-	s.recycle.PurgeProject(proj)
+	if err := s.recycle.PurgeProject(proj); err != nil {
+		writeErr(w, err.Error())
+		return
+	}
 	s.logs.InsertLog("彻底删除", fmt.Sprintf("工程#%d %s", pid, proj.Name), "不可恢复")
 	writeJSON(w, map[string]interface{}{"ok": true})
 }

@@ -5,6 +5,7 @@ package httpapi
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -18,6 +19,12 @@ func writeJSON(w http.ResponseWriter, v interface{}) {
 // writeErr 写出统一的失败响应：{"ok":false,"error":...}
 func writeErr(w http.ResponseWriter, msg string) {
 	writeJSON(w, map[string]interface{}{"ok": false, "error": msg})
+}
+
+// writeInternal 记录内部错误日志并返回统一友好消息（不向前端泄露 SQL/路径等内部细节）。
+func writeInternal(w http.ResponseWriter, err error) {
+	log.Println("internal error:", err)
+	writeErr(w, "服务器内部错误")
 }
 
 // urlEncode 对文件名等做百分号编码（用于 Content-Disposition）。

@@ -7,7 +7,9 @@ package httpapi
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"path/filepath"
+	"time"
 
 	"heritage-mgmt/internal/config"
 	"heritage-mgmt/internal/llm"
@@ -84,9 +86,42 @@ func (s *Server) Routes() *http.ServeMux {
 	return mux
 }
 
-// ListenAndServe 启动 HTTP 服务（127.0.0.1:5000）。
+// ListenAndServe 启动 HTTP 服务（127.0.0.1:5000），用安全中间件包裹路由。
 func (s *Server) ListenAndServe(addr string) error {
 	fmt.Printf("✓ 文物保护工程管理系统已启动: http://%s  (Ctrl+C 停止)\n", addr)
-	srv := &http.Server{Addr: addr, Handler: s.Routes()}
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           s.securityMiddleware(s.Routes()),
+		ReadHeaderTimeout: 5 * time.Second,
+	}
 	return srv.ListenAndServe()
+}
+
+// allowedHost 允许的本机访问 Host（离线单机系统只接受本机回环访问）。
+func allowedHost(host string) bool {
+	return host == "127.0.0.1:5000" || host == "localhost:5000" || host == "127.0.0.1" || host == "localhost"
+}
+
+// securityMiddleware 防 CSRF：① 校验 Host 为本机回环；② 若带 Origin 须同源；③ 非 GET 请求须带正确 X-Heritage-CSRF。
+// 恶意网页跨域读不到 /api/config 的 csrf_token（CORS 拦截读响应），故无法构造合法写请求。
+func (s *Server) securityMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !allowedHost(r.Host) {
+			http.Error(w, "forbidden host", http.StatusForbidden)
+			return
+		}
+		if origin := r.Header.Get("Origin"); origin != "" {
+			if u, err := url.Parse(origin); err != nil || !allowedHost(u.Host) {
+				http.Error(w, "forbidden origin", http.StatusForbidden)
+				return
+			}
+		}
+		if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodOptions {
+			if r.Header.Get("X-Heritage-CSRF") != s.cfg.CSRFToken {
+				http.Error(w, "bad csrf token", http.StatusForbidden)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }

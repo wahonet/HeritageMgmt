@@ -1,6 +1,6 @@
 // 工程详情视图：分段/标签视图、流程图、阶段面板、上传/编辑/OCR/文件树/删除。
 import { state } from '../core/state.js';
-import { $, el, wan, esc, fmtDate, dateDiff, levelName, extIcon } from '../core/dom.js';
+import { $, el, wan, esc, attr, jsArg, fmtDate, dateDiff, levelName, extIcon } from '../core/dom.js';
 import { get, post, put, del, API } from '../core/api.js';
 import { loadSidebar } from './dashboard.js';
 
@@ -21,7 +21,7 @@ export function renderProject(data) {
   state.lastData = data;
   const p = data.project;
   const c = $('#content');
-  const statusCls = (p.status || '前期');
+  const statusCls = esc(p.status || '前期');
   const toggle = `<select class="view-select" onchange="switchView(this.value)">
       <option value="stack"${state.viewMode === 'stack' ? ' selected' : ''}>分段视图</option>
       <option value="tab"${state.viewMode === 'tab' ? ' selected' : ''}>标签视图</option>
@@ -38,7 +38,7 @@ export function renderProject(data) {
         <button class="btn btn-sm" onclick="openEdit(${p.id})">编辑台账</button>
         <button class="btn btn-sm" onclick="ocrScan(${p.id},this)">OCR识别合同</button>
         <button class="btn btn-sm" onclick="exportReport(${p.id})">导出报告</button>
-        <button class="btn btn-sm btn-del-project" onclick="deleteProject(${p.id},'${esc(p.name).replace(/'/g, "\\'")}')">删除项目</button>
+        <button class="btn btn-sm btn-del-project" onclick="deleteProject(${p.id},${jsArg(p.name)})">删除项目</button>
       </div>
     </div>`;
 
@@ -133,7 +133,7 @@ function tabBasic(data) {
       ${row('级别', esc(levelName(data.unit_level)))}
       ${row('工程名称', esc(p.name))}
       ${row('文保工程类型', esc(p.ptype))}
-      ${row('当前状态', `<span class="status-pill ${p.status || '前期'}">${esc(p.status || '—')}</span>`)}
+      ${row('当前状态', `<span class="status-pill ${esc(p.status || '前期')}">${esc(p.status || '—')}</span>`)}
       ${row('批复文号', esc(p.approval_no))}
       ${row('合同编号', esc(p.contract_no))}
       ${row('合同签订日期', fmtDate(p.contract_sign_date))}
@@ -205,8 +205,8 @@ function tabFlow(data) {
       const docs = data.documents.filter(d => d.doc_type === t.code);
       const reqTag = t.required ? '<span class="dtr-required">必备</span>' : '<span class="dtr-optional">可选</span>';
       const short = s => s.length > 16 ? s.slice(0, 16) + '…' : s;
-      const chips = docs.length ? docs.map(d => `<span class="doc-chip" onclick="openDoc(${d.id},'${esc(d.orig_name)}')" title="${esc(d.title)}">${extIcon(d.file_ext)} ${esc(short(d.title))}</span>`).join('') : '<span class="no-file">暂无</span>';
-      return `<div class="ftype-row"><div class="ftype-label">${reqTag}<span class="ftype-name">${esc(t.name)}</span><span class="ftype-cnt">${t.count}</span></div><div class="ftype-files">${chips}<span class="upload-mini" onclick="openUpload(${p.id},'${t.code}','${esc(t.name)}')">＋上传</span></div></div>`;
+      const chips = docs.length ? docs.map(d => `<span class="doc-chip" onclick="openDoc(${d.id},${jsArg(d.orig_name)})" title="${esc(d.title)}">${extIcon(d.file_ext)} ${esc(short(d.title))}</span>`).join('') : '<span class="no-file">暂无</span>';
+      return `<div class="ftype-row"><div class="ftype-label">${reqTag}<span class="ftype-name">${esc(t.name)}</span><span class="ftype-cnt">${t.count}</span></div><div class="ftype-files">${chips}<span class="upload-mini" onclick="openUpload(${p.id},${jsArg(t.code)},${jsArg(t.name)})">＋上传</span></div></div>`;
     }).join('');
     return `<div class="stage-block"><div class="sb-head"><span class="sb-name">${esc(s.name)}</span><span class="sb-status ${statusCls}">${statusTxt}</span><span class="sb-cnt">${s.doc_count} 份</span></div>${typeRows}</div>`;
   }).join('');
@@ -228,14 +228,14 @@ export function openStage(code) {
     const missTag = (!docs.length && t.required) ? '<span class="dtr-miss">缺失</span>' : '';
     let cards = '';
     for (const d of docs) {
-      cards += `<div class="doc-card" onclick="openDoc(${d.id},'${esc(d.orig_name)}')">
+      cards += `<div class="doc-card" onclick="openDoc(${d.id},${jsArg(d.orig_name)})">
         <span class="ic">${extIcon(d.file_ext)}</span>
         <div class="dc-body"><div class="dc-title" title="${esc(d.title)}">${esc(d.title)}</div>
         <div class="dc-meta">${esc(d.file_ext || '').toUpperCase()} · ${(d.file_size / 1024).toFixed(0)}KB</div></div>
-        <span class="dc-del" title="删除" onclick="event.stopPropagation();deleteDoc(${d.id},'${esc(d.title)}')">删除</span>
+        <span class="dc-del" title="删除" onclick="event.stopPropagation();deleteDoc(${d.id},${jsArg(d.title)})">删除</span>
       </div>`;
     }
-    const addBtn = `<span class="upload-mini" onclick="openUpload(${data.project.id},'${t.code}','${esc(t.name)}')">＋ 上传${esc(t.name)}</span>`;
+    const addBtn = `<span class="upload-mini" onclick="openUpload(${data.project.id},${jsArg(t.code)},${jsArg(t.name)})">＋ 上传${esc(t.name)}</span>`;
     rows += `<div class="doc-type-row">
       <div class="dtr-head"><span class="dtr-name">${esc(t.name)}</span>${reqTag}${missTag}${addBtn}</div>
       <div class="doc-grid">${cards || '<div style="color:var(--muted);font-size:12px;padding:4px">暂无文件</div>'}</div>
@@ -246,11 +246,35 @@ export function openStage(code) {
     ${rows}</div>`;
 }
 
-// 打开文件
+// 浏览器可直接预览的扩展名（与后端 handleFile 的 inline 集合一致）
+const PREVIEWABLE_EXT = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
+
+// triggerDownload 用隐藏 <a> 触发下载（后端对非 inline 类型已返回 Content-Disposition: attachment）。
+function triggerDownload(url) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+// 打开文件：可预览类型在 iframe 内联展示；不可预览类型（Word/Excel 等）显示下载提示并触发下载，
+// 避免预览框残留上一个 PDF/图片造成"以为没反应"的困惑。
 export function openDoc(id, name) {
   $('#previewTitle').textContent = name;
-  $('#previewFrame').src = `${API}/file/${id}`;
   $('#previewModal').classList.remove('hidden');
+  const frame = $('#previewFrame');
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  if (PREVIEWABLE_EXT.includes(ext)) {
+    frame.removeAttribute('srcdoc');
+    frame.src = `${API}/file/${id}`;
+  } else {
+    // srcdoc 优先于 src，故可预览分支需 removeAttribute('srcdoc')；此处先 about:blank 再 srcdoc。
+    frame.src = 'about:blank';
+    frame.srcdoc = `<html><head><meta charset="utf-8"><style>body{font-family:"Microsoft YaHei",sans-serif;text-align:center;color:#555;padding:80px 20px;background:#fafafa;margin:0}.ic{font-size:56px;margin-bottom:12px}.nm{margin:0 0 6px;font-size:16px;word-break:break-all}.tip{color:#888;margin:4px 0}.ok{color:#2e7d32;margin-top:14px;font-weight:600}</style></head><body><div class="ic">📄</div><h3 class="nm">${esc(name)}</h3><p class="tip">该文件类型不支持浏览器内预览</p><p class="ok">✓ 已开始下载，请查看浏览器下载</p></body></html>`;
+    triggerDownload(`${API}/file/${id}`);
+  }
 }
 
 // 上传
@@ -365,7 +389,7 @@ export async function showFileTree(pid) {
     if (hasFiles) {
       html += '<div class="ft-files">';
       for (const f of d.files) {
-        html += `<div class="ft-file" onclick="openDocByName(${pid},'${esc(f.name).replace(/'/g, "\\'")}')">
+        html += `<div class="ft-file" onclick="openDocByName(${pid},${jsArg(f.name)})">
           ${extTag(f.ext)}<span class="ft-fname" title="${esc(f.name)}">${esc(f.name)}</span>
           <span class="ft-fsize">${sizeStr(f.size)}</span></div>`;
       }

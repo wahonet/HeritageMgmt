@@ -2,7 +2,8 @@ package classify
 
 import "strings"
 
-// Similarity 简易相似度（基于最长公共子序列 LCS）
+// Similarity 基于 rune（字符）的最长公共子序列相似度。
+// 必须按 rune 而非 byte 比较，否则中文 UTF-8 多字节会被拆碎，相似度失真。
 func Similarity(a, b string) float64 {
 	if a == b {
 		return 1
@@ -10,23 +11,22 @@ func Similarity(a, b string) float64 {
 	if a == "" || b == "" {
 		return 0
 	}
-	la, lb := len(a), len(b)
-	dp := make([][]int, la+1)
-	for i := range dp {
-		dp[i] = make([]int, lb+1)
-	}
+	ra, rb := []rune(a), []rune(b)
+	la, lb := len(ra), len(rb)
+	dp := make([]int, lb+1) // 滚动数组省内存
 	for i := 1; i <= la; i++ {
+		prev := 0 // dp[i-1][j-1]
 		for j := 1; j <= lb; j++ {
-			if a[i-1] == b[j-1] {
-				dp[i][j] = dp[i-1][j-1] + 1
-			} else if dp[i-1][j] > dp[i][j-1] {
-				dp[i][j] = dp[i-1][j]
-			} else {
-				dp[i][j] = dp[i][j-1]
+			tmp := dp[j]
+			if ra[i-1] == rb[j-1] {
+				dp[j] = prev + 1
+			} else if dp[j-1] > dp[j] {
+				dp[j] = dp[j-1]
 			}
+			prev = tmp
 		}
 	}
-	lcs := dp[la][lb]
+	lcs := dp[lb]
 	return 2.0 * float64(lcs) / float64(la+lb)
 }
 

@@ -162,7 +162,7 @@ func (svc *ProjectService) List(unitID int64, status, q string) ([]projectListIt
 	for _, p := range projects {
 		item := projectListItem{
 			Project:         p,
-			UnitName:        svc.projects.ProjectName(p.UnitID),
+			UnitName:        svc.units.UnitName(p.UnitID),
 			DocCount:        svc.docs.CountDocs(p.ID),
 			MissingRequired: []string{},
 		}
@@ -213,7 +213,7 @@ func (svc *ProjectService) Dashboard() map[string]interface{} {
 	var tProj, tDone, tMiss int
 	var tFund, tPaid float64
 	for _, p := range projects {
-		un := svc.projects.ProjectName(p.UnitID)
+		un := svc.units.UnitName(p.UnitID)
 		p.UnitName = un
 		p.DocCount = svc.docs.CountDocs(p.ID)
 		have := svc.projects.ProjectDocTypes(p.ID)
@@ -369,7 +369,16 @@ func (svc *ProjectService) CreateWizard(in CreateProjectInput) (int64, string, e
 		return 0, "", err
 	}
 	folder := fmt.Sprintf("P%04d", pid)
-	svc.projects.SetProjectFolder(pid, folder)
-	os.MkdirAll(filepath.Join(svc.cfg.ProjectsDir, folder), 0755)
+	dir := filepath.Join(svc.cfg.ProjectsDir, folder)
+	// 目录创建/写回失败须回滚工程记录，避免出现"DB 有工程但无目录"的半条记录。
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		_ = svc.projects.PurgeProjectRecord(pid)
+		return 0, "", fmt.Errorf("创建工程目录失败: %w", err)
+	}
+	if err := svc.projects.SetProjectFolder(pid, folder); err != nil {
+		_ = os.RemoveAll(dir)
+		_ = svc.projects.PurgeProjectRecord(pid)
+		return 0, "", fmt.Errorf("写入工程目录名失败: %w", err)
+	}
 	return pid, folder, nil
 }

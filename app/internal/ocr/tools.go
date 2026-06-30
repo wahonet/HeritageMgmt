@@ -5,17 +5,38 @@
 package ocr
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strings"
+	"time"
 )
 
 func fileExists(p string) bool {
 	_, err := os.Stat(p)
 	return err == nil
+}
+
+// runWithTimeout 执行外部命令，带超时（防坏 PDF/大扫描件卡死请求）与 stderr 捕获。
+func runWithTimeout(timeout time.Duration, bin string, args ...string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, bin, args...)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	out, err := cmd.Output()
+	if ctx.Err() == context.DeadlineExceeded {
+		return nil, fmt.Errorf("%s 超时(%s)", filepath.Base(bin), timeout)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("%s 失败: %v: %s", filepath.Base(bin), err, strings.TrimSpace(stderr.String()))
+	}
+	return out, nil
 }
 
 // FindTool 多路径查找可执行工具: PATH > app/tools > winget包目录 > Program Files
@@ -61,7 +82,7 @@ func FindTool(name, appBase string) string {
 	return ""
 }
 
-// PDFToImages 把PDF渲染成PNG,依次尝试多种工具
+// PDFToImages 把PDF渲染成PNG,依次尝试多种工具；每个工具限 2 分钟超时。
 func PDFToImages(pdfPath, outDir, appBase string) ([]string, error) {
 	prefix := filepath.Join(outDir, "p")
 	old, _ := filepath.Glob(prefix + "*.png")
@@ -80,16 +101,16 @@ func PDFToImages(pdfPath, outDir, appBase string) ([]string, error) {
 		if r.bin == "" {
 			continue
 		}
-		var cmd *exec.Cmd
+		var args []string
 		switch r.name {
 		case "mutool":
-			cmd = exec.Command(r.bin, "draw", "-o", prefix+"%03d.png", "-r", "200", pdfPath, "1-"+maxPages)
+			args = []string{"draw", "-o", prefix + "%03d.png", "-r", "200", pdfPath, "1-" + maxPages}
 		case "pdftoppm":
-			cmd = exec.Command(r.bin, "-png", "-r", "200", "-f", "1", "-l", maxPages, pdfPath, prefix)
+			args = []string{"-png", "-r", "200", "-f", "1", "-l", maxPages, pdfPath, prefix}
 		case "magick", "convert":
-			cmd = exec.Command(r.bin, "-density", "200", pdfPath+"[0-5]", prefix+"%03d.png")
+			args = []string{"-density", "200", pdfPath + "[0-5]", prefix + "%03d.png"}
 		}
-		_ = cmd.Run()
+		_, _ = runWithTimeout(2*time.Minute, r.bin, args...)
 		if imgs, _ := filepath.Glob(prefix + "*.png"); len(imgs) > 0 {
 			sort.Strings(imgs)
 			return imgs, nil
@@ -98,7 +119,7 @@ func PDFToImages(pdfPath, outDir, appBase string) ([]string, error) {
 	return nil, fmt.Errorf("未找到可用的PDF渲染工具(需安装 poppler(pdftoppm) 或 mupdf 或 ImageMagick 之一)")
 }
 
-// OCRImage 用 tesseract 对单张图片做中文(chi_sim)OCR
+// OCRImage 用 tesseract 对单张图片做中文(chi_sim)OCR；限 2 分钟超时。
 func OCRImage(imgPath, dataDir, appBase string) (string, error) {
 	tess := FindTool("tesseract", appBase)
 	if tess == "" {
@@ -110,8 +131,7 @@ func OCRImage(imgPath, dataDir, appBase string) (string, error) {
 	if _, e := os.Stat(filepath.Join(tessdataDir, "chi_sim.traineddata")); e == nil {
 		args = append([]string{"--tessdata-dir", tessdataDir}, args...)
 	}
-	cmd := exec.Command(tess, args...)
-	out, err := cmd.Output()
+	out, err := runWithTimeout(2*time.Minute, tess, args...)
 	if err != nil {
 		return "", err
 	}

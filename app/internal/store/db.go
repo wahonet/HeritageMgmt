@@ -7,6 +7,7 @@ package store
 
 import (
 	"database/sql"
+	"fmt"
 
 	"heritage-mgmt/internal/config"
 
@@ -21,19 +22,43 @@ type Store struct {
 
 // NewStore 打开并初始化数据库（建表 + 旧库字段迁移）。
 func NewStore(cfg *config.Config) (*Store, error) {
-	d, err := sql.Open("sqlite", cfg.DBPath)
+	d, err := openSQLite(cfg.DBPath)
 	if err != nil {
 		return nil, err
 	}
-	d.Exec("PRAGMA foreign_keys = ON")
-	d.Exec("PRAGMA journal_mode = WAL")
 	if _, err := d.Exec(schema); err != nil {
 		d.Close()
 		return nil, err
 	}
 	s := &Store{db: d}
-	s.migrate()
+	if err := s.migrate(); err != nil {
+		d.Close()
+		return nil, err
+	}
 	return s, nil
+}
+
+// openSQLite 打开并配置连接：单连接（离线单机优先一致性，避免连接级 PRAGMA 失效与锁竞争）、
+// WAL 模式、busy_timeout=5s、外键约束。任一 PRAGMA 失败立即报错（旧版静默忽略会导致
+// 外键级联/锁等待行为在不同请求间不一致）。
+func openSQLite(path string) (*sql.DB, error) {
+	d, err := sql.Open("sqlite", path)
+	if err != nil {
+		return nil, err
+	}
+	d.SetMaxOpenConns(1)
+	d.SetMaxIdleConns(1)
+	for _, q := range []string{
+		"PRAGMA foreign_keys = ON",
+		"PRAGMA journal_mode = WAL",
+		"PRAGMA busy_timeout = 5000",
+	} {
+		if _, err := d.Exec(q); err != nil {
+			d.Close()
+			return nil, fmt.Errorf("%s 失败: %w", q, err)
+		}
+	}
+	return d, nil
 }
 
 // Begin 开启一个事务（供导入主流程批量写入）。
@@ -58,16 +83,13 @@ func (s *Store) Reopen(cfg *config.Config) error {
 		s.db.Close()
 		s.db = nil
 	}
-	d, err := sql.Open("sqlite", cfg.DBPath)
+	d, err := openSQLite(cfg.DBPath)
 	if err != nil {
 		return err
 	}
-	d.Exec("PRAGMA foreign_keys = ON")
-	d.Exec("PRAGMA journal_mode = WAL")
 	if _, err := d.Exec(schema); err != nil {
 		return err
 	}
 	s.db = d
-	s.migrate()
-	return nil
+	return s.migrate()
 }

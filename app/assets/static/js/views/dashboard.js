@@ -1,6 +1,6 @@
 // 侧栏（单位/工程列表）与看板视图。
 import { state } from '../core/state.js';
-import { $, el, esc, wan } from '../core/dom.js';
+import { $, el, esc, wan, jsArg } from '../core/dom.js';
 import { get, post, del, API } from '../core/api.js';
 import { selectProject } from './project.js';
 
@@ -16,7 +16,7 @@ export async function loadSidebar(filter = '') {
     // 默认收起; 搜索时 或 含当前选中工程 时展开
     const expanded = (filter !== '') || ps.some(p => p.id === state.currentProjectId);
     const head = el('div', 'unit-head',
-      `<span class="caret">${expanded ? '-' : '+'}</span><span class="uname">${esc(u.name)}</span>${u.level ? `<span class="lvl">${esc(u.level)}</span>` : ''}<span class="badge">${ps.length}</span><span class="unit-del" title="删除单位" onclick="event.stopPropagation();deleteUnit(${u.id},'${esc(u.name).replace(/'/g, "\\'")}',${ps.length})">×</span>`);
+      `<span class="caret">${expanded ? '-' : '+'}</span><span class="uname">${esc(u.name)}</span>${u.level ? `<span class="lvl">${esc(u.level)}</span>` : ''}<span class="badge">${ps.length}</span><span class="unit-del" title="删除单位" onclick="event.stopPropagation();deleteUnit(${u.id},${jsArg(u.name)},${ps.length})">×</span>`);
     const body = el('div', expanded ? '' : 'hidden');
     head.onclick = () => {
       const hidden = body.classList.toggle('hidden');

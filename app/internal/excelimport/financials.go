@@ -4,16 +4,21 @@ package excelimport
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/xuri/excelize/v2"
 )
 
 var headerNormRe = regexp.MustCompile(`\s+`)
+
+// moneyCleanRe 去除金额中的逗号/空格/货币符号（￥¥）。
+var moneyCleanRe = regexp.MustCompile(`[,\s￥¥]`)
 
 // LoadFinancials 读取 basicdataDir 下首个 .xlsx，返回以表头为键的行记录。
 // 每条记录附带 "_name" 字段为项目名称（第二列）。
@@ -89,6 +94,7 @@ var fieldMap = map[string][]string{
 	"sign_date":       {"开工日期"},
 	"complete_date":   {"完工日期"},
 	"contract_end":    {"合同约定完工日期"},
+	"accept_date":     {"验收日期", "竣工验收日期", "初验日期"},
 	"central_funding": {"财政指标文下达金额", "财政指标", "下达金额"},
 	"eng_contract":    {"工程合同金额", "工程合同额"},
 	"eng_paid":        {"工程支付金额", "工程支出累计"},
@@ -114,9 +120,18 @@ func FinGet(fin map[string]string, field string) string {
 	return ""
 }
 
-// ParseFloat 解析金额，空或非法返回 nil
+// ParseFloat 解析金额：去除逗号/空格/货币符号，识别"万元/万/元"单位（元换算为万元），
+// 空或横线或非法返回 nil，结果四舍五入到 0.01。
 func ParseFloat(s string) *float64 {
 	s = strings.TrimSpace(s)
+	if s == "" || s == "-" || s == "—" {
+		return nil
+	}
+	isYuan := strings.Contains(s, "元") && !strings.Contains(s, "万元")
+	s = strings.ReplaceAll(s, "万元", "")
+	s = strings.ReplaceAll(s, "万", "")
+	s = strings.ReplaceAll(s, "元", "")
+	s = moneyCleanRe.ReplaceAllString(s, "")
 	if s == "" {
 		return nil
 	}
@@ -124,10 +139,15 @@ func ParseFloat(s string) *float64 {
 	if err != nil {
 		return nil
 	}
+	if isYuan {
+		v = v / 10000
+	}
+	v = math.Round(v*100) / 100
 	return &v
 }
 
-// TrimDate 规范化日期，形如 "2021-12-10 00:00:00" 取前10位
+// TrimDate 规范化日期：含 - 或 / 的取前 10 位（形如 "2021-12-10 00:00:00"→"2021-12-10"）；
+// 纯数字且落在 Excel 序列日期范围（>20000）则按 1900 日期系统换算为 ISO；其余（如中文日期）原样返回。
 func TrimDate(s string) string {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -135,6 +155,10 @@ func TrimDate(s string) string {
 	}
 	if len(s) >= 10 && (strings.Contains(s, "-") || strings.Contains(s, "/")) {
 		return s[:10]
+	}
+	if v, err := strconv.ParseFloat(s, 64); err == nil && v > 20000 && v < 80000 {
+		base := time.Date(1899, 12, 30, 0, 0, 0, 0, time.Local)
+		return base.AddDate(0, 0, int(v)).Format("2006-01-02")
 	}
 	return s
 }

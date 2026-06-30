@@ -1,6 +1,6 @@
 // 回收站视图（列表/恢复/彻底删除）。
 import { state } from '../core/state.js';
-import { $, esc } from '../core/dom.js';
+import { $, esc, jsArg } from '../core/dom.js';
 import { get, post, del } from '../core/api.js';
 import { loadSidebar } from './dashboard.js';
 
@@ -19,8 +19,8 @@ export async function showRecycle() {
     <td>${esc(it.ptype || '—')}</td>
     <td>${esc(it.status || '—')}</td>
     <td>
-      <button class="btn btn-sm" style="background:var(--green)" onclick="restoreProject(${it.id},'${esc(it.name).replace(/'/g, "\\'")}')">恢复</button>
-      <button class="btn btn-sm btn-del-project" onclick="purgeProject(${it.id},'${esc(it.name).replace(/'/g, "\\'")}')">彻底删除</button>
+      <button class="btn btn-sm" style="background:var(--green)" onclick="restoreProject(${it.id},${jsArg(it.name)})">恢复</button>
+      <button class="btn btn-sm btn-del-project" onclick="purgeProject(${it.id},${jsArg(it.name)})">彻底删除</button>
     </td></tr>`).join('');
   $('#content').innerHTML = `<div class="dashboard">
     <h2>回收站（${items.length}个已删除工程）</h2>

@@ -20,13 +20,14 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		"doc_types":     s.cfg.DocCfg.Types,
 		"workflow":      s.cfg.WfCfg.Stages,
 		"project_types": ptypes,
+		"csrf_token":    s.cfg.CSRFToken,
 	})
 }
 
 func (s *Server) handleUnits(w http.ResponseWriter, r *http.Request) {
 	out, err := s.proj.ListUnits()
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		writeInternal(w, err)
 		return
 	}
 	writeJSON(w, out)

@@ -51,6 +51,10 @@ func FindChineseFont(appBase string) string {
 		filepath.Join(os.Getenv("WINDIR"), "Fonts", "msyh.ttf"),
 		filepath.Join(os.Getenv("WINDIR"), "Fonts", "msyh.ttc"),
 		filepath.Join(os.Getenv("WINDIR"), "Fonts", "simsun.ttc"),
+		"/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+		"/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc",
+		"/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+		"/usr/share/fonts/opentype/source-han-sans/SourceHanSansCN-Regular.otf",
 		"/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
 		"/usr/share/fonts/wqy-microhei/wqy-microhei.ttc",
 	}
@@ -132,6 +136,11 @@ func Generate(rd ReportData, appBase string) ([]byte, error) {
 		pdf.SetFontSize(size)
 		pdf.SetTextColor(40, 40, 40)
 		for _, line := range WrapText(text, 38) {
+			if pdf.GetY() > 790 { // 超出底部边距则分页（A4 高 841.89）
+				pdf.AddPage()
+				pdf.SetY(60)
+			}
+			pdf.SetX(60)
 			pdf.Text(line)
 			pdf.Br(size + 4)
 		}

@@ -17,7 +17,7 @@ func (s *Server) handleProjects(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	out, err := s.proj.List(unitID, status, q)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		writeInternal(w, err)
 		return
 	}
 	writeJSON(w, out)

@@ -3,7 +3,7 @@
 // （取代原 sidebar.js 末尾散落的 window.x=x 巨型行）。后续可演进为事件委托以彻底去除。
 import { state } from './core/state.js';
 import { $ } from './core/dom.js';
-import { API, get } from './core/api.js';
+import { API, get, setCSRFToken } from './core/api.js';
 import { routeFromHash } from './core/router.js';
 import { loadSidebar, filterSidebar, showDashboard, reImport, deleteUnit } from './views/dashboard.js';
 import {
@@ -57,6 +57,7 @@ async function init() {
   registerHandlers();
   state.viewMode = localStorage.getItem('viewMode') || 'stack';
   state.config = await get('/config');
+  setCSRFToken(state.config.csrf_token);
   await loadSidebar();
   // hash 路由: #project/<id> 直达工程，便于分享/截图
   window.addEventListener('hashchange', routeFromHash);

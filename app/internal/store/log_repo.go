@@ -25,8 +25,13 @@ func (s *Store) ListLogs(limit int) ([]domain.LogEntry, error) {
 	var out []domain.LogEntry
 	for rows.Next() {
 		var l domain.LogEntry
-		rows.Scan(&l.ID, &l.Ts, &l.Action, &l.Target, &l.Detail)
+		if err := rows.Scan(&l.ID, &l.Ts, &l.Action, &l.Target, &l.Detail); err != nil {
+			return nil, err
+		}
 		out = append(out, l)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return out, nil
 }

@@ -3,9 +3,12 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"time"
 
 	"heritage-mgmt/assets"
 	"heritage-mgmt/internal/domain"
@@ -26,6 +29,7 @@ type Config struct {
 	WfCfg        domain.Workflow
 	LLM          llm.Config
 	Rules        Rules
+	CSRFToken    string // 启动时随机生成，经 /api/config 下发前端，非 GET 请求须回传以防 CSRF
 }
 
 // ResolvePaths 解析数据/配置目录（优先可执行文件同级，go run 时回退工作目录），
@@ -146,5 +150,15 @@ func NewConfig() (*Config, error) {
 		WfCfg:        wfCfg,
 		LLM:          LoadLLM(appBase),
 		Rules:        LoadRules(appBase),
+		CSRFToken:    randomToken(),
 	}, nil
+}
+
+// randomToken 生成 32 字节随机十六进制串，用作 CSRF token；rand 失败时回退到时间戳保证非常量。
+func randomToken() string {
+	var b [32]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return hex.EncodeToString([]byte(time.Now().Format("20060102150405.000000000")))[:32]
+	}
+	return hex.EncodeToString(b[:])
 }

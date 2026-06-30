@@ -35,7 +35,7 @@ func (f *fakeStore) UnitLevel(int64) string                 { return f.level }
 func (f *fakeStore) UnitName(int64) string                  { return "" }
 func (f *fakeStore) UnitStats(int64) (int, int, float64)    { return 0, 0, 0 }
 func (f *fakeStore) CreateUnit(string, string, int) (int64, error) { return 0, nil }
-func (f *fakeStore) DeleteUnitRecords(int64)                {}
+func (f *fakeStore) DeleteUnit(int64) error                 { return nil }
 
 // ---- DocumentRepository ----
 func (f *fakeStore) ListDocuments(int64) ([]domain.Document, error) { return f.docs, nil }

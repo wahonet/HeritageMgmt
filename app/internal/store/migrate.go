@@ -2,7 +2,10 @@ package store
 
 // 数据层：表结构定义、旧库字段迁移、整库重置。
 
-import "database/sql"
+import (
+	"database/sql"
+	"fmt"
+)
 
 const schema = `
 CREATE TABLE IF NOT EXISTS units (
@@ -34,9 +37,13 @@ CREATE INDEX IF NOT EXISTS idx_proj_unit ON projects(unit_id);
 CREATE INDEX IF NOT EXISTS idx_logs_ts ON logs(ts);
 `
 
-// migrate 为旧版本数据库补齐新增字段
-func (s *Store) migrate() {
-	cols := s.tableColumns("projects")
+// migrate 为旧版本数据库补齐新增字段；任一字段添加失败立即返回错误（旧版静默吞错会导致
+// 后续查询失败、列表为空等运行时问题）。
+func (s *Store) migrate() error {
+	cols, err := s.tableColumns("projects")
+	if err != nil {
+		return err
+	}
 	add := []string{
 		"construction_unit TEXT", "construction_qual TEXT",
 		"design_unit TEXT", "design_qual TEXT",
@@ -47,9 +54,12 @@ func (s *Store) migrate() {
 	for _, c := range add {
 		name := c[:idxSpace(c)]
 		if !cols[name] {
-			s.db.Exec("ALTER TABLE projects ADD COLUMN " + c)
+			if _, err := s.db.Exec("ALTER TABLE projects ADD COLUMN " + c); err != nil {
+				return fmt.Errorf("迁移字段 %s 失败: %w", name, err)
+			}
 		}
 	}
+	return nil
 }
 
 func idxSpace(s string) int {
@@ -61,21 +71,23 @@ func idxSpace(s string) int {
 	return len(s)
 }
 
-func (s *Store) tableColumns(table string) map[string]bool {
+func (s *Store) tableColumns(table string) (map[string]bool, error) {
 	m := map[string]bool{}
 	rows, err := s.db.Query("PRAGMA table_info(" + table + ")")
 	if err != nil {
-		return m
+		return m, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var cid, notnull, pk int
 		var name, ctype string
 		var dflt sql.NullString
-		rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk)
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			return m, err
+		}
 		m[name] = true
 	}
-	return m
+	return m, rows.Err()
 }
 
 // ResetTables 清空工程/单位/文档并重置自增序列（供导入主流程在事务内调用）。

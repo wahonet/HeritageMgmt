@@ -24,6 +24,7 @@ func (s *Server) handleReportPDF(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	proj := d.Project
+	proj.UnitName = s.units.UnitName(proj.UnitID) // Analyze 未填 UnitName，报告"文物单位"栏需要
 	rd := reporting.ReportData{
 		Project:         d.Project,
 		UnitLevel:       d.UnitLevel,
@@ -41,7 +42,7 @@ func (s *Server) handleReportPDF(w http.ResponseWriter, r *http.Request) {
 
 	pdf, err := reporting.Generate(rd, s.cfg.AppBase)
 	if err != nil {
-		writeJSON(w, map[string]interface{}{"error": err.Error()})
+		writeInternal(w, err)
 		return
 	}
 
